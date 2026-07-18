@@ -105,6 +105,8 @@ async function inviteFriend() {
   const url = inviteUrl(target);
   inviteLink.value = url; inviteLinkWrap.hidden = false;
   challengeStatus.textContent = `Your first-to-${target} invite link is ready to send.`;
+  inviteLink.focus(); inviteLink.select();
+  window.prompt('Copy this invite link and send it to your friend:', url);
 }
 async function copyGeneratedInvite() {
   if (!inviteLink.value) return;

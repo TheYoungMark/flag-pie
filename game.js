@@ -114,9 +114,9 @@ function renderMatch(state) {
     dot.classList.toggle('used', index < opponent.length);
   });
   
-  // Render live opponent guesses list
+  // Render live opponent guesses list (Hiding actual country names as requested!)
   $('opponent-guess-list').innerHTML = opponent.length 
-    ? opponent.map(guess => `<span class="${guess.is_correct ? 'correct' : ''}">${guess.country_name}${guess.is_correct ? ' ✓' : ''}</span>`).join('') 
+    ? opponent.map(guess => `<span class="${guess.is_correct ? 'correct' : ''}">Guess ${guess.guess_number}: ${guess.is_correct ? 'Correct! 🎉' : 'Incorrect'}</span>`).join('') 
     : '<span>No guesses yet…</span>';
   
   // Lock on waiting screen if friend hasn't joined yet
@@ -128,21 +128,42 @@ function renderMatch(state) {
     waitingLink.value = url;
   }
   
-  if (roundChanged) resetMatchRound(match);
+  if (roundChanged) {
+    resetMatchRound(match);
+    list.innerHTML = '';
+  }
   
-  // Render my guesses with persistent hints
-  list.innerHTML = mine.map((guess, index) => {
-    const isCorrect = guess.is_correct;
-    const hintText = isCorrect ? 'Correct! 🎉' : hintForShort(index + 1);
-    return `<div class="guess-row${isCorrect ? ' win' : ''}"><span>${guess.country_name}</span><span class="wrong">${hintText}</span></div>`;
-  }).join('');
+  // Render my guesses incrementally with persistent hints (solving the animation glitch)
+  const currentCount = list.children.length;
+  if (mine.length !== currentCount || roundChanged) {
+    const startIdx = roundChanged ? 0 : currentCount;
+    for (let i = startIdx; i < mine.length; i++) {
+      const guess = mine[i];
+      const isCorrect = guess.is_correct;
+      const hintText = isCorrect ? 'Correct! 🎉' : hintForShort(i + 1);
+      const row = document.createElement('div');
+      row.className = `guess-row${isCorrect ? ' win' : ''}`;
+      row.innerHTML = `<span>${guess.country_name}</span><span class="wrong">${hintText}</span>`;
+      list.appendChild(row);
+    }
+  }
   
   guesses = mine.map(guess => countries.find(country => country.name === guess.country_name)).filter(Boolean);
-  $('tries').textContent = `${Math.max(0, 5 - guesses.length)} tries left`;
   
-  const isMineFinished = mine.some(g => g.is_correct) || mine.length >= 5;
-  const isOpponentFinished = opponent.some(g => g.is_correct) || opponent.length >= 5;
-  const isRoundFinished = match.last_winner_id !== null || (isMineFinished && isOpponentFinished);
+  // Check win and limit states
+  const oppCorrectGuess = opponent.find(g => g.is_correct);
+  const myCorrectGuess = mine.find(g => g.is_correct);
+  
+  const oppLimit = oppCorrectGuess ? oppCorrectGuess.guess_number : 5;
+  const myLimit = myCorrectGuess ? myCorrectGuess.guess_number : 5;
+  
+  const isMineFinished = myCorrectGuess !== undefined || mine.length >= oppLimit;
+  const isOpponentFinished = oppCorrectGuess !== undefined || opponent.length >= myLimit;
+  
+  const triesLeft = Math.max(0, oppLimit - mine.length);
+  $('tries').textContent = `${triesLeft} ${triesLeft === 1 ? 'try' : 'tries'} left`;
+  
+  const isRoundFinished = (myCorrectGuess !== undefined && isOpponentFinished) || (oppCorrectGuess !== undefined && isMineFinished) || (mine.length >= 5 && opponent.length >= 5);
   
   if (isRoundFinished && match.status === 'active') {
     // Round is finished! Disable inputs and show Next Round button
@@ -152,11 +173,9 @@ function renderMatch(state) {
     
     if (match.last_winner_id) {
       if (match.last_winner_id === playerId) {
-        const myWinAttempt = mine.find(g => g.is_correct);
-        message.innerHTML = `<strong>You got it!</strong> 🔥 Won this round in ${myWinAttempt ? myWinAttempt.guess_number : 1} tries. Click <strong>Next Round</strong> to proceed.`;
+        message.innerHTML = `<strong>You won this round!</strong> 🔥 Got it in ${myLimit} tries. Click <strong>Next Round</strong> to proceed.`;
       } else {
-        const oppWinAttempt = opponent.find(g => g.is_correct);
-        message.innerHTML = `<strong>Friend got it!</strong> 🔥 Won this round in ${oppWinAttempt ? oppWinAttempt.guess_number : 1} tries. The country was <strong>${answer.name}</strong>. Click <strong>Next Round</strong>.`;
+        message.innerHTML = `<strong>Your friend won this round!</strong> 🔥 Got it in ${oppLimit} tries. The country was <strong>${answer.name}</strong>. Click <strong>Next Round</strong>.`;
       }
     } else {
       message.innerHTML = `<strong>Round over!</strong> No one guessed it correctly. The country was <strong>${answer.name}</strong>. Click <strong>Next Round</strong>.`;
@@ -169,14 +188,18 @@ function renderMatch(state) {
       // You finished, waiting for opponent
       input.disabled = true;
       form.querySelector('button').disabled = true;
-      message.innerHTML = mine.some(g => g.is_correct)
-        ? '<strong>You got it!</strong> Waiting for your friend to finish...'
-        : '<strong>No tries left.</strong> Waiting for your friend to finish...';
+      if (myCorrectGuess) {
+        message.innerHTML = `<strong>You got it!</strong> 🔥 Waiting for your friend to finish (they are limited to ${myLimit} tries)...`;
+      } else {
+        message.innerHTML = `<strong>No tries left.</strong> Capped at ${oppLimit} tries. Waiting for your friend to finish...`;
+      }
     } else {
       // You are still playing
       input.disabled = false;
       form.querySelector('button').disabled = false;
-      if (mine.length > 0) {
+      if (oppCorrectGuess) {
+        message.innerHTML = `<strong>Your opponent got it in ${oppLimit} tries! 🔥</strong> You are limited to ${oppLimit} tries to guess it or you lose!`;
+      } else if (mine.length > 0) {
         message.innerHTML = hintFor(mine.length);
       } else {
         message.textContent = 'Type a country to start making guesses.';

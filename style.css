@@ -30,6 +30,10 @@
   --yellow: #ffd000;
   --purple-accent: #a78bfa;
 }
+[data-theme="dark"] .pie-chart {
+  box-shadow: inset 0 0 0 4px var(--card), 0 0 15px rgba(255, 255, 255, 0.25);
+  border: 2.5px solid #ffffff;
+}
 
 * { box-sizing:border-box; }
 [hidden] { display:none!important; }

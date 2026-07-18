@@ -9,7 +9,7 @@ const sharedMatchId = matchParams.get('match');
 const sharedTarget = matchParams.get('firstTo');
 const SUPABASE_URL = 'https://ukzktvrbqqnmlrwvqzpr.supabase.co';
 const SUPABASE_KEY = 'sb_publishable_JEFdHvuMS6rrAdbShBMsMw_PKSGXDfG';
-let answer, guesses, finished, activeSuggestion = -1, supabaseClient, playerId, activeMatch, matchPoll, lastShownFireRound = 0;
+let answer, guesses, finished, activeSuggestion = -1, supabaseClient, playerId, activeMatch, matchPoll, lastShownFireRound = 0, nextRoundTimerStarted = false;
 
 // Filter out micro-states with population <= 50,000
 (function() {
@@ -109,7 +109,7 @@ async function ensurePlayer() {
 
 function resetMatchRound(match) {
   answer = countries[match.country_index]; guesses = []; finished = false; list.innerHTML = ''; input.value = ''; input.disabled = false; form.querySelector('button').disabled = false;
-  $('tries').textContent = '5 tries left'; $('result-screen').hidden = true; renderChart();
+  $('tries').textContent = '5 tries left'; $('result-screen').hidden = true; showFlagImage(false); renderChart();
 }
 
 function renderMatch(state) {
@@ -154,6 +154,7 @@ function renderMatch(state) {
   if (roundChanged) {
     resetMatchRound(match);
     list.innerHTML = '';
+    nextRoundTimerStarted = false;
   }
   
   // Render my guesses incrementally with persistent hints (solving the animation glitch)
@@ -194,23 +195,41 @@ function renderMatch(state) {
   const isRoundFinished = (myCorrectGuess !== undefined && isOpponentFinished) || (oppCorrectGuess !== undefined && isMineFinished) || (mine.length >= 5 && opponent.length >= 5);
   
   if (isRoundFinished && match.status === 'active') {
-    // Round is finished! Disable inputs and show Next Round button
     input.disabled = true;
     form.querySelector('button').disabled = true;
-    $('next-round-panel').hidden = false;
+    $('next-round-panel').hidden = true;
+    showFlagImage(true);
     
     if (match.last_winner_id) {
       if (match.last_winner_id === playerId) {
-        message.innerHTML = `<strong>You won this round!</strong> 🔥 Got it in ${myLimit} tries. Click <strong>Next Round</strong> to proceed.`;
+        message.innerHTML = `<strong>You won this round!</strong> 🔥 The country was <strong>${answer.name}</strong>. Next round starts in 5 seconds...`;
       } else {
-        message.innerHTML = `<strong>Your friend won this round!</strong> 🔥 Got it in ${oppLimit} tries. The country was <strong>${answer.name}</strong>. Click <strong>Next Round</strong>.`;
+        message.innerHTML = `<strong>Your friend won this round!</strong> 🔥 The country was <strong>${answer.name}</strong>. Next round starts in 5 seconds...`;
       }
     } else {
-      message.innerHTML = `<strong>Round over!</strong> No one guessed it correctly. The country was <strong>${answer.name}</strong>. Click <strong>Next Round</strong>.`;
+      message.innerHTML = `<strong>Round over!</strong> The country was <strong>${answer.name}</strong>. Next round starts in 5 seconds...`;
+    }
+    
+    if (!nextRoundTimerStarted) {
+      nextRoundTimerStarted = true;
+      setTimeout(async () => {
+        try {
+          const nextIndex = Math.floor(Math.random() * countries.length);
+          const { data, error } = await supabaseClient.rpc('next_match_round', { 
+            p_match: activeMatch.id, 
+            p_country_index: nextIndex, 
+            p_current_round: match.round_number 
+          });
+          if (error) throw error;
+          await syncMatch(data);
+        } catch (err) {
+          console.error('Error starting next round:', err);
+        }
+      }, 5000);
     }
   } else if (match.status === 'active') {
-    // Round in progress
     $('next-round-panel').hidden = true;
+    showFlagImage(false);
     
     if (isMineFinished) {
       // You finished, waiting for opponent
@@ -300,7 +319,7 @@ function hintFor(n) {
 function newGame(practice=false) {
   const idx = practice ? Math.floor(Math.random()*countries.length) : dailyIndex();
   answer=countries[idx]; guesses=[]; finished=false; list.innerHTML=''; input.disabled=false; form.querySelector('button').disabled=false; input.value='';
-  $('result-screen').hidden=true; suggestions.classList.remove('show');
+  $('result-screen').hidden=true; suggestions.classList.remove('show'); showFlagImage(false);
   message.innerHTML = practice ? 'Practice round: a random country has been chosen.' : 'Today’s puzzle is the same for everyone — share it with a friend.';
   $('tries').textContent='5 tries left'; renderChart(); input.focus();
 }
@@ -316,22 +335,38 @@ async function guess(value) {
   const row=document.createElement('div'); row.className=`guess-row${won?' win':''}`;
   row.innerHTML=`<span>${country.name}</span><span class="wrong">${hintText}</span>`; list.append(row); input.value=''; suggestions.classList.remove('show');
   
-  $('tries').textContent=`${Math.max(0,5-guesses.length)} tries left`;
+  $('tries').textContent=`${Math.max(0,5-guesses.length)} ${Math.max(0,5-guesses.length)===1?'try':'tries'} left`;
   if (won) {
     triggerConfetti();
-    end(`You got it in <strong>${guesses.length}</strong> ${guesses.length===1?'guess':'guesses'}! It was <strong>${answer.name}</strong>.`);
+    finished = true;
+    input.disabled = true;
+    form.querySelector('button').disabled = true;
+    message.innerHTML = `<strong>Correct! 🎉</strong> The country was <strong>${answer.name}</strong>. Next round starts in 5 seconds...`;
+    showFlagImage(true);
+    setTimeout(() => {
+      if (!activeMatch && finished) newGame(true);
+    }, 5000);
   }
-  else if (guesses.length===5) end(`So close — the answer was <strong>${answer.name}</strong>. Hit “New round” for another.`);
+  else if (guesses.length===5) {
+    finished = true;
+    input.disabled = true;
+    form.querySelector('button').disabled = true;
+    message.innerHTML = `<strong>Round over!</strong> The country was <strong>${answer.name}</strong>. Next round starts in 5 seconds...`;
+    showFlagImage(true);
+    setTimeout(() => {
+      if (!activeMatch && finished) newGame(true);
+    }, 5000);
+  }
   else message.innerHTML=hintFor(guesses.length);
 }
 
 function end(text) { finished=true; input.disabled=true; form.querySelector('button').disabled=true; suggestions.classList.remove('show'); message.innerHTML=text; $('result-title').textContent=guesses.at(-1).name===answer.name?'You got it!':'The answer was…'; $('result-copy').innerHTML=`<strong>${answer.name}</strong><br>${text}`; $('result-screen').hidden=false; }
-function showSuggestions() { const term=normalize(input.value); const matches=countries.filter(c=>normalize(c.name).includes(term)).slice(0,8); activeSuggestion=-1; suggestions.innerHTML=matches.map(c=>`<button type="button" role="option" data-country="${c.name}">${c.name}</button>`).join(''); suggestions.classList.toggle('show',matches.length>0 && !finished); }
+function showSuggestions() { const term=normalize(input.value); const matches=countries.filter(c=>normalize(c.name).includes(term)).slice(0,30); activeSuggestion=-1; suggestions.innerHTML=matches.map(c=>`<button type="button" role="option" data-country="${c.name}">${c.name}</button>`).join(''); suggestions.classList.toggle('show',matches.length>0 && !finished); }
 function chooseSuggestion(name) { input.value=name; suggestions.classList.remove('show'); input.focus(); }
 
 input.addEventListener('input',showSuggestions);
 input.addEventListener('focus',showSuggestions);
-input.addEventListener('keydown',e=>{ const options=[...suggestions.querySelectorAll('button')]; if(!options.length) return; if(e.key==='ArrowDown'||e.key==='ArrowUp'){e.preventDefault(); activeSuggestion=(activeSuggestion+(e.key==='ArrowDown'?1:options.length-1))%options.length; options.forEach((o,i)=>o.classList.toggle('active',i===activeSuggestion));} if(e.key==='Enter'&&activeSuggestion>=0){e.preventDefault();chooseSuggestion(options[activeSuggestion].dataset.country);} if(e.key==='Escape') suggestions.classList.remove('show'); });
+input.addEventListener('keydown',e=>{ const options=[...suggestions.querySelectorAll('button')]; if(!options.length) return; if(e.key==='ArrowDown'||e.key==='ArrowUp'){e.preventDefault(); activeSuggestion=(activeSuggestion+(e.key==='ArrowDown'?1:options.length-1))%options.length; options.forEach((o,i)=>{ const active = i===activeSuggestion; o.classList.toggle('active',active); if (active) o.scrollIntoView({ block: 'nearest' }); });} if(e.key==='Enter'&&activeSuggestion>=0){e.preventDefault();chooseSuggestion(options[activeSuggestion].dataset.country);} if(e.key==='Escape') suggestions.classList.remove('show'); });
 suggestions.addEventListener('click',e=>{if(e.target.dataset.country) chooseSuggestion(e.target.dataset.country);});
 document.addEventListener('click',e=>{if(!e.target.closest('.autocomplete')) suggestions.classList.remove('show');});
 form.addEventListener('submit',e=>{e.preventDefault(); if(!finished) guess(input.value);});
@@ -464,6 +499,218 @@ function triggerConfetti() {
     else canvas.remove();
   }
   update();
+}
+
+const isoMap = {
+  "Argentina": "ar",
+  "Belgium": "be",
+  "Brazil": "br",
+  "Canada": "ca",
+  "Chile": "cl",
+  "Colombia": "co",
+  "France": "fr",
+  "Germany": "de",
+  "Greece": "gr",
+  "India": "in",
+  "Italy": "it",
+  "Jamaica": "jm",
+  "Japan": "jp",
+  "Mexico": "mx",
+  "Nigeria": "ng",
+  "South Africa": "za",
+  "Sweden": "se",
+  "Thailand": "th",
+  "Ukraine": "ua",
+  "United Kingdom": "gb",
+  "Australia": "au",
+  "Austria": "at",
+  "Bangladesh": "bd",
+  "China": "cn",
+  "Costa Rica": "cr",
+  "Denmark": "dk",
+  "Egypt": "eg",
+  "Finland": "fi",
+  "Hungary": "hu",
+  "Indonesia": "id",
+  "Ireland": "ie",
+  "Kenya": "ke",
+  "Netherlands": "nl",
+  "Norway": "no",
+  "Pakistan": "pk",
+  "Peru": "pe",
+  "Philippines": "ph",
+  "Poland": "pl",
+  "Portugal": "pt",
+  "South Korea": "kr",
+  "Spain": "es",
+  "Switzerland": "ch",
+  "Türkiye": "tr",
+  "United States": "us",
+  "Afghanistan": "af",
+  "Albania": "al",
+  "Algeria": "dz",
+  "Andorra": "ad",
+  "Angola": "ao",
+  "Antigua and Barbuda": "ag",
+  "Armenia": "am",
+  "Azerbaijan": "az",
+  "Bahrain": "bh",
+  "Barbados": "bb",
+  "Belarus": "by",
+  "Belize": "bz",
+  "Benin": "bj",
+  "Bhutan": "bt",
+  "Bolivia": "bo",
+  "Bosnia and Herzegovina": "ba",
+  "Botswana": "bw",
+  "Brunei": "bn",
+  "Bulgaria": "bg",
+  "Burkina Faso": "bf",
+  "Burundi": "bi",
+  "Cabo Verde": "cv",
+  "Cambodia": "kh",
+  "Cameroon": "cm",
+  "Central African Republic": "cf",
+  "Chad": "td",
+  "Comoros": "km",
+  "Republic of the Congo": "cg",
+  "Democratic Republic of the Congo": "cd",
+  "Croatia": "hr",
+  "Cuba": "cu",
+  "Cyprus": "cy",
+  "Djibouti": "dj",
+  "Dominica": "dm",
+  "Dominican Republic": "do",
+  "Ecuador": "ec",
+  "El Salvador": "sv",
+  "Equatorial Guinea": "gq",
+  "Eritrea": "er",
+  "Estonia": "ee",
+  "Eswatini": "sz",
+  "Ethiopia": "et",
+  "Fiji": "fj",
+  "Gabon": "ga",
+  "Georgia": "ge",
+  "Ghana": "gh",
+  "Grenada": "gd",
+  "Guatemala": "gt",
+  "Guinea": "gn",
+  "Guinea-Bissau": "gw",
+  "Guyana": "gy",
+  "Haiti": "ht",
+  "Honduras": "hn",
+  "Iceland": "is",
+  "Iran": "ir",
+  "Iraq": "iq",
+  "Israel": "il",
+  "Jordan": "jo",
+  "Kazakhstan": "kz",
+  "Kiribati": "ki",
+  "Kuwait": "kw",
+  "Kyrgyzstan": "kg",
+  "Laos": "la",
+  "Latvia": "lv",
+  "Lebanon": "lb",
+  "Lesotho": "ls",
+  "Liberia": "lr",
+  "Libya": "ly",
+  "Liechtenstein": "li",
+  "Lithuania": "lt",
+  "Luxembourg": "lu",
+  "Madagascar": "mg",
+  "Malawi": "mw",
+  "Malaysia": "my",
+  "Maldives": "mv",
+  "Mali": "ml",
+  "Malta": "mt",
+  "Marshall Islands": "mh",
+  "Mauritania": "mr",
+  "Mauritius": "mu",
+  "Micronesia": "fm",
+  "Moldova": "md",
+  "Monaco": "mc",
+  "Mongolia": "mn",
+  "Montenegro": "me",
+  "Morocco": "ma",
+  "Mozambique": "mz",
+  "Myanmar": "mm",
+  "Namibia": "na",
+  "Nauru": "nr",
+  "New Zealand": "nz",
+  "Nicaragua": "ni",
+  "Niger": "ne",
+  "North Korea": "kp",
+  "North Macedonia": "mk",
+  "Oman": "om",
+  "Palau": "pw",
+  "Panama": "pa",
+  "Papua New Guinea": "pg",
+  "Paraguay": "py",
+  "Qatar": "qa",
+  "Romania": "ro",
+  "Russia": "ru",
+  "Rwanda": "rw",
+  "Saint Kitts and Nevis": "kn",
+  "Saint Lucia": "lc",
+  "Saint Vincent and the Grenadines": "vc",
+  "Samoa": "ws",
+  "San Marino": "sm",
+  "São Tomé and Príncipe": "st",
+  "Saudi Arabia": "sa",
+  "Senegal": "sn",
+  "Serbia": "rs",
+  "Seychelles": "sc",
+  "Sierra Leone": "sl",
+  "Singapore": "sg",
+  "Slovakia": "sk",
+  "Slovenia": "si",
+  "Solomon Islands": "sb",
+  "Somalia": "so",
+  "South Sudan": "ss",
+  "Sri Lanka": "lk",
+  "Sudan": "sd",
+  "Suriname": "sr",
+  "Syria": "sy",
+  "Tajikistan": "tj",
+  "Tanzania": "tz",
+  "Timor-Leste": "tl",
+  "Togo": "tg",
+  "Tonga": "to",
+  "Trinidad and Tobago": "tt",
+  "Tunisia": "tn",
+  "Turkmenistan": "tm",
+  "Tuvalu": "tv",
+  "Uganda": "ug",
+  "United Arab Emirates": "ae",
+  "Uruguay": "uy",
+  "Uzbekistan": "uz",
+  "Vanuatu": "vu",
+  "Vatican City": "va",
+  "Venezuela": "ve",
+  "Vietnam": "vn",
+  "Yemen": "ye",
+  "Zambia": "zm",
+  "Zimbabwe": "zw"
+};
+
+function showFlagImage(show) {
+  const flagImg = $('flag-img');
+  const pieChart = $('pie-chart');
+  const chartCenter = $('chart-center');
+  
+  if (show && answer) {
+    const code = isoMap[answer.name];
+    if (code) {
+      flagImg.src = `https://flagcdn.com/w320/${code}.png`;
+      flagImg.hidden = false;
+      pieChart.style.opacity = '0';
+      chartCenter.style.opacity = '0';
+    }
+  } else {
+    flagImg.hidden = true;
+    pieChart.style.opacity = '1';
+    chartCenter.style.opacity = '1';
+  }
 }
 
 if (sharedTarget === '3' || sharedTarget === '5') matchTarget.value = sharedTarget;

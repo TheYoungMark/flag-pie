@@ -1,90 +1,19 @@
-const countries = [
-  {name:'Argentina', colors:[['Sky blue',50,'#75aadb'],['White',42,'#ffffff'],['Gold',8,'#f6bd38']], continent:'South America', population:'46 million', border:'It borders Chile, Bolivia, Paraguay, Brazil and Uruguay.', capital:'Buenos Aires'},
-  {name:'Belgium', colors:[['Black',33,'#181818'],['Gold',33,'#f8d047'],['Red',34,'#d13a32']], continent:'Europe', population:'12 million', border:'It borders France, Luxembourg, Germany and the Netherlands.', capital:'Brussels'},
-  {name:'Brazil', colors:[['Green',54,'#229e52'],['Gold',27,'#ffdc36'],['Blue',12,'#254aa5'],['White',7,'#ffffff']], continent:'South America', population:'212 million', border:'It borders every South American country except Chile and Ecuador.', capital:'Brasília'},
-  {name:'Canada', colors:[['Red',42,'#d52b1e'],['White',58,'#ffffff']], continent:'North America', population:'41 million', border:'Its only land border is with the United States.', capital:'Ottawa'},
-  {name:'Chile', colors:[['White',43,'#ffffff'],['Red',43,'#d52b1e'],['Blue',14,'#0039a6']], continent:'South America', population:'20 million', border:'It shares a very long border with Argentina.', capital:'Santiago'},
-  {name:'Colombia', colors:[['Gold',50,'#f7d117'],['Blue',25,'#224fa0'],['Red',25,'#d52b1e']], continent:'South America', population:'53 million', border:'It borders five countries, including Panama and Venezuela.', capital:'Bogotá'},
-  {name:'France', colors:[['Blue',33,'#1d45a0'],['White',34,'#ffffff'],['Red',33,'#e23d35']], continent:'Europe', population:'68 million', border:'It has land borders with eight European countries.', capital:'Paris'},
-  {name:'Germany', colors:[['Black',33,'#1c1c1c'],['Red',33,'#d33632'],['Gold',34,'#ffce38']], continent:'Europe', population:'84 million', border:'It borders nine countries.', capital:'Berlin'},
-  {name:'Greece', colors:[['Blue',50,'#2167ae'],['White',50,'#ffffff']], continent:'Europe', population:'10 million', border:'It borders Albania, North Macedonia, Bulgaria and Türkiye.', capital:'Athens'},
-  {name:'India', colors:[['Saffron',33,'#ff9933'],['White',34,'#ffffff'],['Green',33,'#138808']], continent:'Asia', population:'1.4 billion', border:'It borders six countries, including Pakistan and China.', capital:'New Delhi'},
-  {name:'Italy', colors:[['Green',33,'#009246'],['White',34,'#ffffff'],['Red',33,'#ce2b37']], continent:'Europe', population:'59 million', border:'It surrounds two tiny independent countries.', capital:'Rome'},
-  {name:'Jamaica', colors:[['Green',42,'#009b3a'],['Gold',16,'#fed100'],['Black',42,'#111111']], continent:'North America', population:'2.8 million', border:'It is an island country in the Caribbean.', capital:'Kingston'},
-  {name:'Japan', colors:[['White',87,'#ffffff'],['Red',13,'#bc002d']], continent:'Asia', population:'123 million', border:'It is an island nation with no land borders.', capital:'Tokyo'},
-  {name:'Mexico', colors:[['Green',33,'#006847'],['White',34,'#ffffff'],['Red',33,'#ce1126']], continent:'North America', population:'131 million', border:'It borders the United States, Guatemala and Belize.', capital:'Mexico City'},
-  {name:'Nigeria', colors:[['Green',67,'#008753'],['White',33,'#ffffff']], continent:'Africa', population:'233 million', border:'It borders Benin, Niger, Chad and Cameroon.', capital:'Abuja'},
-  {name:'South Africa', colors:[['Red',21,'#de3831'],['Blue',21,'#002395'],['Green',25,'#007a4d'],['Black',12,'#111111'],['Gold',8,'#ffb612'],['White',13,'#ffffff']], continent:'Africa', population:'63 million', border:'It completely surrounds Lesotho.', capital:'Pretoria (executive)'},
-  {name:'Sweden', colors:[['Blue',74,'#006aa7'],['Gold',26,'#fecc00']], continent:'Europe', population:'11 million', border:'It shares a long border with Norway.', capital:'Stockholm'},
-  {name:'Thailand', colors:[['Red',32,'#a51931'],['White',28,'#ffffff'],['Blue',40,'#2d2a4a']], continent:'Asia', population:'71 million', border:'It borders four countries in Southeast Asia.', capital:'Bangkok'},
-  {name:'Ukraine', colors:[['Blue',50,'#0057b7'],['Gold',50,'#ffd700']], continent:'Europe', population:'38 million', border:'It borders seven countries.', capital:'Kyiv'},
-  {name:'United Kingdom', colors:[['Blue',58,'#012169'],['Red',19,'#c8102e'],['White',23,'#ffffff']], continent:'Europe', population:'69 million', border:'Its only land border is on the island of Ireland.', capital:'London'}
-  ,{name:'Australia', colors:[['Blue',61,'#012169'],['Red',15,'#c8102e'],['White',24,'#ffffff']], continent:'Oceania', population:'27 million', border:'It is an island continent with no land borders.', capital:'Canberra'}
-  ,{name:'Austria', colors:[['Red',67,'#ed2939'],['White',33,'#ffffff']], continent:'Europe', population:'9.1 million', border:'It borders eight countries, including Germany and Italy.', capital:'Vienna'}
-  ,{name:'Bangladesh', colors:[['Green',82,'#006a4e'],['Red',18,'#f42a41']], continent:'Asia', population:'174 million', border:'It is almost surrounded by India.', capital:'Dhaka'}
-  ,{name:'China', colors:[['Red',91,'#de2910'],['Gold',9,'#ffde00']], continent:'Asia', population:'1.4 billion', border:'It has land borders with fourteen countries.', capital:'Beijing'}
-  ,{name:'Costa Rica', colors:[['Blue',24,'#002b7f'],['White',28,'#ffffff'],['Red',48,'#ce1126']], continent:'North America', population:'5.2 million', border:'It borders Nicaragua and Panama.', capital:'San José'}
-  ,{name:'Czechia', colors:[['White',33,'#ffffff'],['Red',33,'#d7141a'],['Blue',34,'#11457e']], continent:'Europe', population:'11 million', border:'It borders Germany, Poland, Slovakia and Austria.', capital:'Prague'}
-  ,{name:'Denmark', colors:[['Red',75,'#c60c30'],['White',25,'#ffffff']], continent:'Europe', population:'6 million', border:'It has one land border, with Germany.', capital:'Copenhagen'}
-  ,{name:'Egypt', colors:[['Red',33,'#ce1126'],['White',34,'#ffffff'],['Black',33,'#000000']], continent:'Africa', population:'113 million', border:'It borders Israel, Libya, Sudan and Gaza.', capital:'Cairo'}
-  ,{name:'Finland', colors:[['White',70,'#ffffff'],['Blue',30,'#003580']], continent:'Europe', population:'5.6 million', border:'It has a very long border with Russia.', capital:'Helsinki'}
-  ,{name:'Hungary', colors:[['Red',33,'#ce2939'],['White',34,'#ffffff'],['Green',33,'#477050']], continent:'Europe', population:'9.6 million', border:'It borders seven countries in Central Europe.', capital:'Budapest'}
-  ,{name:'Indonesia', colors:[['Red',50,'#ce1126'],['White',50,'#ffffff']], continent:'Asia', population:'282 million', border:'It is the world’s largest archipelago.', capital:'Jakarta'}
-  ,{name:'Ireland', colors:[['Green',33,'#169b62'],['White',34,'#ffffff'],['Orange',33,'#ff883e']], continent:'Europe', population:'5.3 million', border:'Its only land border is with the United Kingdom.', capital:'Dublin'}
-  ,{name:'Kenya', colors:[['Black',25,'#000000'],['Red',30,'#bb0000'],['Green',25,'#006600'],['White',20,'#ffffff']], continent:'Africa', population:'55 million', border:'It borders five countries, including Tanzania and Uganda.', capital:'Nairobi'}
-  ,{name:'Netherlands', colors:[['Red',33,'#ae1c28'],['White',34,'#ffffff'],['Blue',33,'#21468b']], continent:'Europe', population:'18 million', border:'Its European land border is with Germany and Belgium.', capital:'Amsterdam'}
-  ,{name:'Norway', colors:[['Red',65,'#ba0c2f'],['Blue',14,'#00205b'],['White',21,'#ffffff']], continent:'Europe', population:'5.6 million', border:'It shares a very long border with Sweden.', capital:'Oslo'}
-  ,{name:'Pakistan', colors:[['Green',75,'#01411c'],['White',25,'#ffffff']], continent:'Asia', population:'241 million', border:'It borders India, China, Afghanistan and Iran.', capital:'Islamabad'}
-  ,{name:'Peru', colors:[['Red',67,'#d91023'],['White',33,'#ffffff']], continent:'South America', population:'34 million', border:'It borders five countries, including Brazil and Chile.', capital:'Lima'}
-  ,{name:'Philippines', colors:[['Blue',38,'#0038a8'],['Red',38,'#ce1126'],['White',18,'#ffffff'],['Gold',3,'#fcd116'],['Green',3,'#007a33']], continent:'Asia', population:'117 million', border:'It is an archipelago in Southeast Asia.', capital:'Manila'}
-  ,{name:'Poland', colors:[['White',50,'#ffffff'],['Red',50,'#dc143c']], continent:'Europe', population:'38 million', border:'It borders seven countries, including Germany and Ukraine.', capital:'Warsaw'}
-  ,{name:'Portugal', colors:[['Green',40,'#006600'],['Red',55,'#ff0000'],['Gold',5,'#ffcc00']], continent:'Europe', population:'10 million', border:'Its only land border is with Spain.', capital:'Lisbon'}
-  ,{name:'South Korea', colors:[['White',79,'#ffffff'],['Red',8,'#cd2e3a'],['Blue',8,'#0047a0'],['Black',5,'#000000']], continent:'Asia', population:'52 million', border:'Its only land border is with North Korea.', capital:'Seoul'}
-  ,{name:'Spain', colors:[['Red',50,'#aa151b'],['Gold',50,'#f1bf00']], continent:'Europe', population:'49 million', border:'It borders Portugal, France and Andorra.', capital:'Madrid'}
-  ,{name:'Switzerland', colors:[['Red',83,'#d52b1e'],['White',17,'#ffffff']], continent:'Europe', population:'8.9 million', border:'It borders five countries, including Italy and France.', capital:'Bern'}
-  ,{name:'Türkiye', colors:[['Red',88,'#e30a17'],['White',12,'#ffffff']], continent:'Asia', population:'86 million', border:'It spans two continents and borders eight countries.', capital:'Ankara'}
-  ,{name:'United States', colors:[['Red',40,'#b22234'],['White',43,'#ffffff'],['Blue',17,'#3c3b6e']], continent:'North America', population:'341 million', border:'It borders Canada and Mexico.', capital:'Washington, D.C.'}
-];
-
-// The core set above has hand-tuned flag proportions. This wider catalog keeps
-// every round playable while giving the search field a genuinely global set of choices.
-const fallbackPalettes = [
-  [['Red',50,'#ce1126'],['White',50,'#ffffff']],
-  [['Blue',33,'#0057b7'],['White',34,'#ffffff'],['Red',33,'#ce1126']],
-  [['Green',45,'#008751'],['White',25,'#ffffff'],['Red',30,'#ce1126']],
-  [['Blue',55,'#0038a8'],['Gold',25,'#fcd116'],['Red',20,'#ce1126']],
-  [['Red',35,'#ce1126'],['White',35,'#ffffff'],['Green',30,'#007a33']],
-  [['Blue',65,'#005eb8'],['White',20,'#ffffff'],['Gold',15,'#ffcd00']],
-  [['Green',55,'#009b3a'],['Gold',25,'#fcd116'],['Red',20,'#ce1126']],
-  [['Black',30,'#000000'],['Red',35,'#ce1126'],['Gold',35,'#fcd116']]
-];
-const extraCountries = [
-  ['Afghanistan','Asia','Kabul'],['Albania','Europe','Tirana'],['Algeria','Africa','Algiers'],['Andorra','Europe','Andorra la Vella'],['Angola','Africa','Luanda'],['Antigua and Barbuda','North America',"St. John's"],['Armenia','Asia','Yerevan'],['Azerbaijan','Asia','Baku'],['Bahamas','North America','Nassau'],['Bahrain','Asia','Manama'],['Barbados','North America','Bridgetown'],['Belarus','Europe','Minsk'],['Belize','North America','Belmopan'],['Benin','Africa','Porto-Novo'],['Bhutan','Asia','Thimphu'],['Bolivia','South America','Sucre'],['Bosnia and Herzegovina','Europe','Sarajevo'],['Botswana','Africa','Gaborone'],['Brunei','Asia','Bandar Seri Begawan'],['Bulgaria','Europe','Sofia'],['Burkina Faso','Africa','Ouagadougou'],['Burundi','Africa','Gitega'],['Cabo Verde','Africa','Praia'],['Cambodia','Asia','Phnom Penh'],['Cameroon','Africa','Yaoundé'],['Central African Republic','Africa','Bangui'],['Chad','Africa',"N'Djamena"],['Comoros','Africa','Moroni'],['Republic of the Congo','Africa','Brazzaville'],['Democratic Republic of the Congo','Africa','Kinshasa'],['Croatia','Europe','Zagreb'],['Cuba','North America','Havana'],['Cyprus','Europe','Nicosia'],['Djibouti','Africa','Djibouti'],['Dominica','North America','Roseau'],['Dominican Republic','North America','Santo Domingo'],['Ecuador','South America','Quito'],['El Salvador','North America','San Salvador'],['Equatorial Guinea','Africa','Malabo'],['Eritrea','Africa','Asmara'],['Estonia','Europe','Tallinn'],['Eswatini','Africa','Mbabane'],['Ethiopia','Africa','Addis Ababa'],['Fiji','Oceania','Suva'],['Gabon','Africa','Libreville'],['Gambia','Africa','Banjul'],['Georgia','Asia','Tbilisi'],['Ghana','Africa','Accra'],['Grenada','North America',"St. George's"],['Guatemala','North America','Guatemala City'],['Guinea','Africa','Conakry'],['Guinea-Bissau','Africa','Bissau'],['Guyana','South America','Georgetown'],['Haiti','North America','Port-au-Prince'],['Honduras','North America','Tegucigalpa'],['Iceland','Europe','Reykjavík'],['Iran','Asia','Tehran'],['Iraq','Asia','Baghdad'],['Israel','Asia','Jerusalem'],['Ivory Coast','Africa','Yamoussoukro'],['Jordan','Asia','Amman'],['Kazakhstan','Asia','Astana'],['Kiribati','Oceania','South Tarawa'],['Kuwait','Asia','Kuwait City'],['Kyrgyzstan','Asia','Bishkek'],['Laos','Asia','Vientiane'],['Latvia','Europe','Riga'],['Lebanon','Asia','Beirut'],['Lesotho','Africa','Maseru'],['Liberia','Africa','Monrovia'],['Libya','Africa','Tripoli'],['Liechtenstein','Europe','Vaduz'],['Lithuania','Europe','Vilnius'],['Luxembourg','Europe','Luxembourg'],['Madagascar','Africa','Antananarivo'],['Malawi','Africa','Lilongwe'],['Malaysia','Asia','Kuala Lumpur'],['Maldives','Asia','Malé'],['Mali','Africa','Bamako'],['Malta','Europe','Valletta'],['Marshall Islands','Oceania','Majuro'],['Mauritania','Africa','Nouakchott'],['Mauritius','Africa','Port Louis'],['Micronesia','Oceania','Palikir'],['Moldova','Europe','Chișinău'],['Monaco','Europe','Monaco'],['Mongolia','Asia','Ulaanbaatar'],['Montenegro','Europe','Podgorica'],['Morocco','Africa','Rabat'],['Mozambique','Africa','Maputo'],['Myanmar','Asia','Naypyidaw'],['Namibia','Africa','Windhoek'],['Nauru','Oceania','Yaren'],['Nepal','Asia','Kathmandu'],['New Zealand','Oceania','Wellington'],['Nicaragua','North America','Managua'],['Niger','Africa','Niamey'],['North Korea','Asia','Pyongyang'],['North Macedonia','Europe','Skopje'],['Oman','Asia','Muscat'],['Palau','Oceania','Ngerulmud'],['Panama','North America','Panama City'],['Papua New Guinea','Oceania','Port Moresby'],['Paraguay','South America','Asunción'],['Qatar','Asia','Doha'],['Romania','Europe','Bucharest'],['Russia','Europe','Moscow'],['Rwanda','Africa','Kigali'],['Saint Kitts and Nevis','North America','Basseterre'],['Saint Lucia','North America','Castries'],['Saint Vincent and the Grenadines','North America','Kingstown'],['Samoa','Oceania','Apia'],['San Marino','Europe','San Marino'],['São Tomé and Príncipe','Africa','São Tomé'],['Saudi Arabia','Asia','Riyadh'],['Senegal','Africa','Dakar'],['Serbia','Europe','Belgrade'],['Seychelles','Africa','Victoria'],['Sierra Leone','Africa','Freetown'],['Singapore','Asia','Singapore'],['Slovakia','Europe','Bratislava'],['Slovenia','Europe','Ljubljana'],['Solomon Islands','Oceania','Honiara'],['Somalia','Africa','Mogadishu'],['South Sudan','Africa','Juba'],['Sri Lanka','Asia','Sri Jayawardenepura Kotte'],['Sudan','Africa','Khartoum'],['Suriname','South America','Paramaribo'],['Syria','Asia','Damascus'],['Tajikistan','Asia','Dushanbe'],['Tanzania','Africa','Dodoma'],['Timor-Leste','Asia','Dili'],['Togo','Africa','Lomé'],['Tonga','Oceania',"Nuku'alofa"],['Trinidad and Tobago','North America','Port of Spain'],['Tunisia','Africa','Tunis'],['Turkmenistan','Asia','Ashgabat'],['Tuvalu','Oceania','Funafuti'],['Uganda','Africa','Kampala'],['United Arab Emirates','Asia','Abu Dhabi'],['Uruguay','South America','Montevideo'],['Uzbekistan','Asia','Tashkent'],['Vanuatu','Oceania','Port Vila'],['Vatican City','Europe','Vatican City'],['Venezuela','South America','Caracas'],['Vietnam','Asia','Hanoi'],['Yemen','Asia',"Sana'a"],['Zambia','Africa','Lusaka'],['Zimbabwe','Africa','Harare']
-];
-countries.push(...extraCountries.map(([name, continent, capital], index) => ({
-  name, colors: fallbackPalettes[index % fallbackPalettes.length], continent,
-  population: 'loading verified population data',
-  border: 'Loading verified border data.', capital
-})));
-countries.forEach(country => {
-  country.population = 'loading verified population data';
-  country.border = 'Loading verified border data.';
-});
-
 const $ = id => document.getElementById(id);
 const input = $('country-input'), form = $('guess-form'), message = $('message'), list = $('guess-list'), suggestions = $('suggestions');
 const matchTarget = $('match-target'), challengeStatus = $('challenge-status');
 const soloMode = $('solo-mode'), friendMode = $('friend-mode'), friendControls = $('friend-controls'), modeDescription = $('mode-description');
 const inviteLinkWrap = $('invite-link-wrap'), inviteLink = $('invite-link');
+const waitingScreen = $('waiting-screen'), waitingLink = $('waiting-link'), opponentIndicator = $('opponent-indicator');
 const matchParams = new URLSearchParams(window.location.search);
 const sharedMatchId = matchParams.get('match');
 const sharedTarget = matchParams.get('firstTo');
 const SUPABASE_URL = 'https://ukzktvrbqqnmlrwvqzpr.supabase.co';
 const SUPABASE_KEY = 'sb_publishable_JEFdHvuMS6rrAdbShBMsMw_PKSGXDfG';
-let answer, guesses, finished, activeSuggestion = -1, supabase, playerId, activeMatch, matchPoll;
+let answer, guesses, finished, activeSuggestion = -1, supabaseClient, playerId, activeMatch, matchPoll;
 
 function dailyIndex() { const now = new Date(); return Math.floor(Date.UTC(now.getFullYear(), now.getMonth(), now.getDate()) / 86400000) % countries.length; }
 function normalize(s) { return s.trim().toLocaleLowerCase(); }
+
 function setPlayMode(mode) {
   const friend = mode === 'friend';
   soloMode.classList.toggle('active', !friend); soloMode.setAttribute('aria-pressed', String(!friend));
@@ -93,166 +22,145 @@ function setPlayMode(mode) {
   modeDescription.textContent = friend
     ? 'Choose the target, then send a shared match link to your opponent.'
     : 'Solve today’s puzzle on your own, or start a fresh practice round.';
-  if (!friend) { challengeStatus.textContent = ''; inviteLinkWrap.hidden = true; activeMatch = null; clearInterval(matchPoll); $('match-panel').hidden = true; }
+  if (!friend) { 
+    challengeStatus.textContent = ''; 
+    inviteLinkWrap.hidden = true; 
+    activeMatch = null; 
+    clearInterval(matchPoll); 
+    $('match-panel').hidden = true; 
+    opponentIndicator.hidden = true; 
+    waitingScreen.hidden = true; 
+  }
 }
+
 function inviteUrl(target, matchId) {
   const url = new URL(window.location.href);
   url.searchParams.set('match', matchId);
   url.searchParams.set('firstTo', target);
   return url.toString();
 }
+
 async function copyInvite(text, target) {
   if (navigator.clipboard?.writeText) await navigator.clipboard.writeText(text);
   else window.prompt('Copy this invite for your friend:', text);
   challengeStatus.textContent = `Invite link copied — first to ${target} wins.`;
 }
+
 async function inviteFriend() {
   const target = matchTarget.value;
   try {
     await ensurePlayer();
-    const { data: matchId, error } = await supabase.rpc('start_match', { p_target:Number(target), p_country_index:Math.floor(Math.random() * countries.length) });
+    const { data: matchId, error } = await supabaseClient.rpc('start_match', { p_target:Number(target), p_country_index:Math.floor(Math.random() * countries.length) });
     if (error) throw error;
     await enterMatch(matchId);
     const url = inviteUrl(target, matchId);
-    inviteLink.value = url; inviteLinkWrap.hidden = false;
+    inviteLink.value = url; waitingLink.value = url; inviteLinkWrap.hidden = false;
     challengeStatus.textContent = `Your live first-to-${target} match is ready. Send this link to your friend.`;
-    inviteLink.focus(); inviteLink.select();
-    window.prompt('Copy this live match link and send it to your friend:', url);
+    waitingScreen.hidden = false;
   } catch (error) {
     challengeStatus.textContent = `Couldn’t create the match: ${error.message || 'please try again.'}`;
   }
 }
+
 async function copyGeneratedInvite() {
   if (!inviteLink.value) return;
   try { await copyInvite(inviteLink.value, matchTarget.value); }
   catch { window.prompt('Copy this invite for your friend:', inviteLink.value); }
 }
+
 async function ensurePlayer() {
-  if (!supabase) supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
-  const { data: { session } } = await supabase.auth.getSession();
+  if (!supabaseClient) supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+  const { data: { session } } = await supabaseClient.auth.getSession();
   if (session) { playerId = session.user.id; return; }
-  const { data, error } = await supabase.auth.signInAnonymously();
+  const { data, error } = await supabaseClient.auth.signInAnonymously();
   if (error) throw error;
   playerId = data.user.id;
 }
+
 function resetMatchRound(match) {
   answer = countries[match.country_index]; guesses = []; finished = false; list.innerHTML = ''; input.value = ''; input.disabled = false; form.querySelector('button').disabled = false;
-  $('tries').textContent = '5 tries left'; $('result-screen').hidden = true; renderChart(); loadWikimediaFlagColors(answer).catch(() => {});
+  $('tries').textContent = '5 tries left'; $('result-screen').hidden = true; renderChart();
 }
+
 function renderMatch(state) {
   const match = state.match, players = state.players || [], guessesInRound = state.guesses || [];
   const roundChanged = !activeMatch || activeMatch.round_number !== match.round_number || activeMatch.country_index !== match.country_index;
   activeMatch = match;
-  $('match-panel').hidden = false; $('match-round').textContent = match.status === 'finished' ? 'Match complete' : `Round ${match.round_number} · first to ${match.target}`;
+  
+  $('match-panel').hidden = false; 
+  $('match-round').textContent = match.status === 'finished' ? 'Match complete' : `Round ${match.round_number} · first to ${match.target}`;
   $('match-score').innerHTML = players.map(player => `<span>${player.user_id === playerId ? 'You' : 'Friend'} ${player.score}</span>`).join('');
+  
   const opponent = guessesInRound.filter(guess => guess.user_id !== playerId), mine = guessesInRound.filter(guess => guess.user_id === playerId);
-  $('opponent-guess-list').innerHTML = opponent.length ? opponent.map(guess => `<span class="${guess.is_correct ? 'correct' : ''}">${guess.country_name}${guess.is_correct ? ' ✓' : ''}</span>`).join('') : '<span>Waiting for a guess…</span>';
+  
+  // Update visual opponent guess track (dots)
+  opponentIndicator.hidden = false;
+  const dots = $('opponent-guess-track').querySelectorAll('.dot');
+  dots.forEach((dot, index) => {
+    dot.classList.toggle('used', index < opponent.length);
+  });
+  
+  // Lock on waiting screen if friend hasn't joined yet
+  if (players.length > 1) {
+    waitingScreen.hidden = true;
+  } else {
+    waitingScreen.hidden = false;
+    const url = inviteUrl(match.target, match.id);
+    waitingLink.value = url;
+  }
+  
   if (roundChanged) resetMatchRound(match);
+  
   list.innerHTML = mine.map(guess => `<div class="guess-row${guess.is_correct ? ' win' : ''}"><span>${guess.country_name}</span><span class="wrong">${guess.is_correct ? 'Correct! 🎉' : `Not quite · ${5 - guess.guess_number} left`}</span></div>`).join('');
   guesses = mine.map(guess => countries.find(country => country.name === guess.country_name)).filter(Boolean);
   $('tries').textContent = `${Math.max(0, 5 - guesses.length)} tries left`;
+  
   if (match.last_winner_id) message.textContent = `${match.last_winner_id === playerId ? 'You' : 'Your friend'} won the last round with ${match.last_winner_country}.`;
-  if (match.status === 'finished') { finished = true; input.disabled = true; form.querySelector('button').disabled = true; message.textContent = match.winner_id === playerId ? 'You won the match! 🎉' : 'Your friend won the match.'; }
+  if (match.status === 'finished') { 
+    finished = true; 
+    input.disabled = true; 
+    form.querySelector('button').disabled = true; 
+    message.textContent = match.winner_id === playerId ? 'You won the match! 🎉' : 'Your friend won the match.'; 
+  }
 }
+
 async function syncMatch(state) {
   try {
-    if (!state) { const { data, error } = await supabase.rpc('match_state', { p_match:activeMatch.id }); if (error) throw error; state = data; }
+    if (!state) { const { data, error } = await supabaseClient.rpc('match_state', { p_match:activeMatch.id }); if (error) throw error; state = data; }
     renderMatch(state);
   } catch (error) { challengeStatus.textContent = `Match connection lost: ${error.message || 'retrying…'}`; }
 }
+
 async function enterMatch(matchId) {
   await ensurePlayer();
-  const { error } = await supabase.rpc('join_match', { p_match:matchId }); if (error) throw error;
+  const { error } = await supabaseClient.rpc('join_match', { p_match:matchId }); if (error) throw error;
   activeMatch = { id:matchId }; setPlayMode('friend'); await syncMatch();
   clearInterval(matchPoll); matchPoll = setInterval(syncMatch, 2000);
 }
+
 async function submitMatchGuess(country) {
-  const { data, error } = await supabase.rpc('submit_match_guess', { p_match:activeMatch.id, p_country_name:country.name, p_is_correct:country.name === answer.name });
+  const { data, error } = await supabaseClient.rpc('submit_match_guess', { p_match:activeMatch.id, p_country_name:country.name, p_is_correct:country.name === answer.name });
   if (error) { message.textContent = error.message; return; }
   await syncMatch(data);
 }
+
 function renderChart() {
   let at = 0; const stops = answer.colors.map(([,,hex],i) => { const start=at; at += answer.colors[i][1] * 3.6; return `${hex} ${start}deg ${at}deg`; });
   $('pie-chart').style.background = `conic-gradient(${stops.join(',')})`;
   $('color-count').textContent = answer.colors.length;
   $('legend').innerHTML = answer.colors.map(([name,pct,hex]) => `<span class="legend-item"><i class="swatch" style="background:${hex}"></i>${name} ${pct}%</span>`).join('');
 }
-function hex(value) { return value.toString(16).padStart(2, '0'); }
-async function loadWikimediaFlagColors(country) {
-  if (!country.flagFile || country.flagColorsLoaded) return;
-  const image = new Image(); image.crossOrigin = 'anonymous';
-  image.src = `https://commons.wikimedia.org/wiki/Special:FilePath/${encodeURIComponent(country.flagFile)}?width=360`;
-  await new Promise((resolve, reject) => { image.onload = resolve; image.onerror = reject; });
-  const canvas = document.createElement('canvas'); canvas.width = 180; canvas.height = Math.max(1, Math.round(180 * image.naturalHeight / image.naturalWidth));
-  const context = canvas.getContext('2d', { willReadFrequently:true }); context.drawImage(image, 0, 0, canvas.width, canvas.height);
-  const pixels = context.getImageData(0, 0, canvas.width, canvas.height).data, counts = new Map(); let total = 0;
-  for (let i=0; i<pixels.length; i+=4) {
-    if (pixels[i+3] < 128) continue;
-    const rgb = [pixels[i], pixels[i+1], pixels[i+2]].map(value => Math.min(255, Math.round(value / 32) * 32));
-    const key = rgb.join(','); counts.set(key, (counts.get(key) || 0) + 1); total++;
-  }
-  const colors = [...counts.entries()].sort((a,b) => b[1]-a[1]).slice(0, 12).map(([rgb, count]) => {
-    const [r,g,b] = rgb.split(',').map(Number), color = `#${hex(r)}${hex(g)}${hex(b)}`;
-    return [color.toUpperCase(), Math.round(count / total * 100), color];
-  });
-  if (colors.length && answer === country) { country.colors = colors; country.flagColorsLoaded = true; renderChart(); }
-}
+
 function hintFor(n) { const hints = [ `Hint 1: It is in <strong>${answer.continent}</strong>.`, `Hint 2: Its documented population is <strong>${answer.population}</strong>.`, `Hint 3: ${answer.border}`, `Hint 4: Its capital is <strong>${answer.capital}</strong>.` ]; return hints[n-1]; }
-function wikiTitle(country) {
-  return ({ 'Türkiye':'Turkey', 'Cabo Verde':'Cape Verde', 'Ivory Coast':"Côte d'Ivoire", 'Vatican City':'Vatican City', 'South Korea':'South Korea', 'North Korea':'North Korea' })[country.name] || country.name;
-}
-function claimValue(statement) { return statement?.mainsnak?.datavalue?.value; }
-function statementDate(statement) { return claimValue(statement?.qualifiers?.P585?.[0])?.time || ''; }
-function listWords(items) { return new Intl.ListFormat('en', { style:'long', type:'conjunction' }).format(items); }
-async function wikidataEntities(params) {
-  const url = new URL('https://www.wikidata.org/w/api.php');
-  Object.entries({ action:'wbgetentities', format:'json', origin:'*', languages:'en', ...params }).forEach(([key, value]) => url.searchParams.set(key, value));
-  for (let attempt=0; attempt<4; attempt++) {
-    const response = await fetch(url);
-    if (response.ok) return (await response.json()).entities;
-    if (response.status !== 429 || attempt === 3) throw new Error('Wikidata request failed');
-    await new Promise(resolve => setTimeout(resolve, (attempt + 1) * 1500));
-  }
-}
-async function hydrateCountryFacts() {
-  const byId = new Map();
-  const countryBatches = Array.from({ length:Math.ceil(countries.length / 40) }, (_, index) => countries.slice(index * 40, index * 40 + 40));
-  for (const batch of countryBatches) {
-    const entities = await wikidataEntities({ sites:'enwiki', titles:batch.map(wikiTitle).join('|'), props:'claims|sitelinks' });
-    Object.values(entities).forEach(entity => {
-      const title = entity.sitelinks?.enwiki?.title;
-      const country = batch.find(item => wikiTitle(item) === title);
-      if (country) byId.set(entity.id, { country, entity });
-    });
-  }
-  const borderIds = [...new Set([...byId.values()].flatMap(({ entity }) => (entity.claims?.P47 || []).map(claimValue).filter(Boolean)))];
-  const labels = new Map();
-  const borderBatches = Array.from({ length:Math.ceil(borderIds.length / 50) }, (_, index) => borderIds.slice(index * 50, index * 50 + 50));
-  for (const batch of borderBatches) {
-    const entities = await wikidataEntities({ ids:batch.join('|'), props:'labels' });
-    Object.values(entities).forEach(entity => { if (entity.labels?.en?.value) labels.set(entity.id, entity.labels.en.value); });
-  }
-  byId.forEach(({ country, entity }) => {
-    country.flagFile = claimValue(entity.claims?.P41?.[0]);
-    const populations = (entity.claims?.P1082 || []).filter(statement => typeof claimValue(statement)?.amount === 'string').sort((a,b) => statementDate(b).localeCompare(statementDate(a)));
-    const population = claimValue(populations[0]);
-    if (population) {
-      const amount = Math.abs(Number(population.amount));
-      const date = statementDate(populations[0]).slice(1, 5);
-      country.population = `${new Intl.NumberFormat('en-US').format(amount)}${date ? ` (${date} estimate)` : ''}`;
-    }
-    const borders = (entity.claims?.P47 || []).map(claimValue).map(id => labels.get(id)).filter(Boolean);
-    country.border = borders.length ? `It borders ${listWords(borders)}.` : 'It has no land borders.';
-  });
-  loadWikimediaFlagColors(answer).catch(() => {});
-}
+
 function newGame(practice=false) {
   const idx = practice ? Math.floor(Math.random()*countries.length) : dailyIndex();
   answer=countries[idx]; guesses=[]; finished=false; list.innerHTML=''; input.disabled=false; form.querySelector('button').disabled=false; input.value='';
   $('result-screen').hidden=true; suggestions.classList.remove('show');
   message.innerHTML = practice ? 'Practice round: a random country has been chosen.' : 'Today’s puzzle is the same for everyone — share it with a friend.';
-  $('tries').textContent='5 tries left'; renderChart(); loadWikimediaFlagColors(answer).catch(() => {}); input.focus();
+  $('tries').textContent='5 tries left'; renderChart(); input.focus();
 }
+
 async function guess(value) {
   const country=countries.find(c=>normalize(c.name)===normalize(value));
   if (!country) { message.textContent='Choose a country from the suggestions.'; return; }
@@ -266,9 +174,11 @@ async function guess(value) {
   else if (guesses.length===5) end(`So close — the answer was <strong>${answer.name}</strong>. Hit “New round” for another.`);
   else message.innerHTML=hintFor(guesses.length);
 }
+
 function end(text) { finished=true; input.disabled=true; form.querySelector('button').disabled=true; suggestions.classList.remove('show'); message.innerHTML=text; $('result-title').textContent=guesses.at(-1).name===answer.name?'You got it!':'The answer was…'; $('result-copy').innerHTML=`<strong>${answer.name}</strong><br>${text}`; $('result-screen').hidden=false; }
 function showSuggestions() { const term=normalize(input.value); const matches=countries.filter(c=>normalize(c.name).includes(term)).slice(0,8); activeSuggestion=-1; suggestions.innerHTML=matches.map(c=>`<button type="button" role="option" data-country="${c.name}">${c.name}</button>`).join(''); suggestions.classList.toggle('show',matches.length>0 && !finished); }
 function chooseSuggestion(name) { input.value=name; suggestions.classList.remove('show'); input.focus(); }
+
 input.addEventListener('input',showSuggestions);
 input.addEventListener('focus',showSuggestions);
 input.addEventListener('keydown',e=>{ const options=[...suggestions.querySelectorAll('button')]; if(!options.length) return; if(e.key==='ArrowDown'||e.key==='ArrowUp'){e.preventDefault(); activeSuggestion=(activeSuggestion+(e.key==='ArrowDown'?1:options.length-1))%options.length; options.forEach((o,i)=>o.classList.toggle('active',i===activeSuggestion));} if(e.key==='Enter'&&activeSuggestion>=0){e.preventDefault();chooseSuggestion(options[activeSuggestion].dataset.country);} if(e.key==='Escape') suggestions.classList.remove('show'); });
@@ -279,11 +189,23 @@ $('new-game').addEventListener('click',()=>activeMatch ? syncMatch() : newGame(t
 $('play-another').addEventListener('click',()=>activeMatch ? syncMatch() : newGame(true));
 $('invite-friend').addEventListener('click', inviteFriend);
 $('copy-invite-link').addEventListener('click', copyGeneratedInvite);
+$('copy-waiting-link').addEventListener('click', async () => {
+  try { await copyInvite(waitingLink.value, matchTarget.value); }
+  catch { window.prompt('Copy this invite for your friend:', waitingLink.value); }
+});
+$('cancel-waiting').addEventListener('click', () => setPlayMode('solo'));
 soloMode.addEventListener('click', () => setPlayMode('solo'));
 friendMode.addEventListener('click', () => setPlayMode('friend'));
+
+// How to Play Event Listeners
+$('how-to-btn').addEventListener('click', () => $('how-to-screen').hidden = false);
+$('close-how-to').addEventListener('click', () => $('how-to-screen').hidden = true);
+$('how-to-screen').addEventListener('click', (e) => {
+  if (e.target === $('how-to-screen')) $('how-to-screen').hidden = true;
+});
+
 if (sharedTarget === '3' || sharedTarget === '5') matchTarget.value = sharedTarget;
 setPlayMode(sharedMatchId ? 'friend' : 'solo');
 if (sharedMatchId && sharedTarget) challengeStatus.textContent = `Joining your live first-to-${sharedTarget} match…`;
 newGame();
-hydrateCountryFacts().catch(() => { /* The game remains playable if Wikimedia is temporarily unavailable. */ });
 if (sharedMatchId) enterMatch(sharedMatchId).catch(error => { challengeStatus.textContent = `Couldn’t join this match: ${error.message || 'please try again.'}`; });

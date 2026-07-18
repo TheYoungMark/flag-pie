@@ -11,7 +11,20 @@
     <main class="game-shell">
       <header>
         <div class="brand"><span class="brand-mark">◔</span> Flag Pie</div>
-        <button id="new-game" class="text-button" type="button">New round ↻</button>
+        <div class="header-actions">
+          <div id="opponent-indicator" class="opponent-indicator" hidden>
+            <span>Friend:</span>
+            <div id="opponent-guess-track" class="guess-track">
+              <span class="dot"></span>
+              <span class="dot"></span>
+              <span class="dot"></span>
+              <span class="dot"></span>
+              <span class="dot"></span>
+            </div>
+          </div>
+          <button id="how-to-btn" class="text-button" type="button">How to play ?</button>
+          <button id="new-game" class="text-button" type="button">New round ↻</button>
+        </div>
       </header>
 
       <section class="intro" aria-labelledby="game-title">
@@ -89,8 +102,40 @@
         <button id="play-another" type="button">Play another round →</button>
       </section>
     </div>
+    <div id="waiting-screen" class="result-screen" hidden>
+      <section class="result-card" role="dialog" aria-modal="true" aria-labelledby="waiting-title">
+        <p class="eyebrow">LIVE 1V1 MATCH</p>
+        <h2 id="waiting-title">Waiting for your friend</h2>
+        <p>Send this link. The match starts as soon as they join.</p>
+        <label class="sr-only" for="waiting-link">Match invite link</label>
+        <input id="waiting-link" class="waiting-link" type="text" readonly />
+        <button id="copy-waiting-link" type="button">Copy invite link</button>
+        <button id="cancel-waiting" class="text-button cancel-waiting" type="button">Cancel match</button>
+      </section>
+    </div>
+    <div id="how-to-screen" class="result-screen" hidden>
+      <section class="result-card" role="dialog" aria-modal="true" aria-labelledby="how-to-title">
+        <p class="eyebrow">HOW TO PLAY</p>
+        <h2 id="how-to-title">Flag Pie Rules</h2>
+        <div class="how-to-content" style="text-align: left; margin: 15px 0; font-size: 0.9rem; color: var(--muted); line-height: 1.5;">
+          <p style="margin-bottom: 8px;">• The <strong>pie chart</strong> shows the colors in the country's flag and their proportions, but not their layout.</p>
+          <p style="margin-bottom: 8px;">• Type a country and submit your guess. You get <strong>5 attempts</strong>.</p>
+          <p style="margin-bottom: 8px;">• Each incorrect guess unlocks a new clue:
+            <ol style="padding-left: 20px; margin-top: 5px; margin-bottom: 5px;">
+              <li><strong>Continent</strong></li>
+              <li><strong>Population</strong> (Wikidata verified)</li>
+              <li><strong>Bordering Countries</strong> (Wikidata verified)</li>
+              <li><strong>Capital City</strong></li>
+            </ol>
+          </p>
+          <p style="margin-bottom: 0;">• <strong>Friend 1v1</strong>: Start a live match and share the link. It's a real-time race—first to guess correctly wins the round!</p>
+        </div>
+        <button id="close-how-to" type="button">Got it!</button>
+      </section>
+    </div>
     <footer>Made for friendly competition · A new daily puzzle, or play practice rounds</footer>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script src="countries_data.js"></script>
     <script src="game.js"></script>
   </body>
 </html>

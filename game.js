@@ -70,6 +70,7 @@ countries.push(...extraCountries.map(([name, continent, capital], index) => ({
 const $ = id => document.getElementById(id);
 const input = $('country-input'), form = $('guess-form'), message = $('message'), list = $('guess-list'), suggestions = $('suggestions');
 const matchTarget = $('match-target'), challengeStatus = $('challenge-status');
+const soloMode = $('solo-mode'), friendMode = $('friend-mode'), friendControls = $('friend-controls'), modeDescription = $('mode-description');
 const matchParams = new URLSearchParams(window.location.search);
 const sharedMatchId = matchParams.get('match');
 const sharedTarget = matchParams.get('firstTo');
@@ -77,6 +78,16 @@ let answer, guesses, finished, activeSuggestion = -1;
 
 function dailyIndex() { const now = new Date(); return Math.floor(Date.UTC(now.getFullYear(), now.getMonth(), now.getDate()) / 86400000) % countries.length; }
 function normalize(s) { return s.trim().toLocaleLowerCase(); }
+function setPlayMode(mode) {
+  const friend = mode === 'friend';
+  soloMode.classList.toggle('active', !friend); soloMode.setAttribute('aria-pressed', String(!friend));
+  friendMode.classList.toggle('active', friend); friendMode.setAttribute('aria-pressed', String(friend));
+  friendControls.hidden = !friend;
+  modeDescription.textContent = friend
+    ? 'Choose the target, then send a shared match link to your opponent.'
+    : 'Solve today’s puzzle on your own, or start a fresh practice round.';
+  if (!friend) challengeStatus.textContent = '';
+}
 function inviteUrl(target) {
   const url = new URL(window.location.href);
   url.searchParams.set('match', window.crypto?.randomUUID?.() || `${Date.now()}-${Math.random().toString(36).slice(2)}`);
@@ -137,6 +148,9 @@ form.addEventListener('submit',e=>{e.preventDefault(); if(!finished) guess(input
 $('new-game').addEventListener('click',()=>newGame(true));
 $('play-another').addEventListener('click',()=>newGame(true));
 $('invite-friend').addEventListener('click', inviteFriend);
+soloMode.addEventListener('click', () => setPlayMode('solo'));
+friendMode.addEventListener('click', () => setPlayMode('friend'));
 if (sharedTarget === '3' || sharedTarget === '5') matchTarget.value = sharedTarget;
+setPlayMode(sharedMatchId ? 'friend' : 'solo');
 if (sharedMatchId && sharedTarget) challengeStatus.textContent = `You joined a 1v1 match — first to ${sharedTarget} wins. Play the same daily puzzle, then compare results with your friend.`;
 newGame();

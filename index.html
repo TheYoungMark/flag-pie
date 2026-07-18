@@ -22,11 +22,15 @@
 
       <section class="challenge" aria-labelledby="challenge-title">
         <div>
-          <p class="eyebrow">HEAD TO HEAD</p>
-          <h2 id="challenge-title">Challenge a friend</h2>
-          <p>Send a shared match link and race to the target number of round wins.</p>
+          <p class="eyebrow">PLAY MODE</p>
+          <h2 id="challenge-title">Choose how to play</h2>
+          <div class="mode-switch" role="group" aria-label="Choose play mode">
+            <button id="solo-mode" class="active" type="button" aria-pressed="true">Solo</button>
+            <button id="friend-mode" type="button" aria-pressed="false">Friend 1v1</button>
+          </div>
+          <p id="mode-description">Solve today’s puzzle on your own, or start a fresh practice round.</p>
         </div>
-        <div class="challenge-actions">
+        <div id="friend-controls" class="challenge-actions" hidden>
           <label for="match-target">First to</label>
           <select id="match-target">
             <option value="3">3 wins</option>

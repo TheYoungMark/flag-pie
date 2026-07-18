@@ -30,6 +30,13 @@ function setPlayMode(mode) {
     $('match-panel').hidden = true; 
     opponentIndicator.hidden = true; 
     waitingScreen.hidden = true; 
+    $('challenge-section').hidden = false;
+  } else {
+    if (!activeMatch) {
+      $('challenge-section').hidden = false;
+    } else {
+      $('challenge-section').hidden = true;
+    }
   }
 }
 
@@ -88,6 +95,7 @@ function renderMatch(state) {
   activeMatch = match;
   
   $('match-panel').hidden = false; 
+  $('challenge-section').hidden = true; // Hide play mode panel when match is active
   $('match-round').textContent = match.status === 'finished' ? 'Match complete' : `Round ${match.round_number} · first to ${match.target}`;
   $('match-score').innerHTML = players.map(player => `<span>${player.user_id === playerId ? 'You' : 'Friend'} ${player.score}</span>`).join('');
   
@@ -152,6 +160,7 @@ function renderMatch(state) {
     input.disabled = true; 
     form.querySelector('button').disabled = true; 
     message.textContent = match.winner_id === playerId ? 'You won the match! 🎉' : 'Your friend won the match.'; 
+    $('challenge-section').hidden = false; // Show play mode again to allow starting another match
   }
 }
 

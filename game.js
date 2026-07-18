@@ -100,6 +100,11 @@ function renderMatch(state) {
     dot.classList.toggle('used', index < opponent.length);
   });
   
+  // Render live opponent guesses list
+  $('opponent-guess-list').innerHTML = opponent.length 
+    ? opponent.map(guess => `<span class="${guess.is_correct ? 'correct' : ''}">${guess.country_name}${guess.is_correct ? ' ✓' : ''}</span>`).join('') 
+    : '<span>No guesses yet…</span>';
+  
   // Lock on waiting screen if friend hasn't joined yet
   if (players.length > 1) {
     waitingScreen.hidden = true;
@@ -111,11 +116,37 @@ function renderMatch(state) {
   
   if (roundChanged) resetMatchRound(match);
   
-  list.innerHTML = mine.map(guess => `<div class="guess-row${guess.is_correct ? ' win' : ''}"><span>${guess.country_name}</span><span class="wrong">${guess.is_correct ? 'Correct! 🎉' : `Not quite · ${5 - guess.guess_number} left`}</span></div>`).join('');
+  // Render my guesses with persistent hints
+  list.innerHTML = mine.map((guess, index) => {
+    const isCorrect = guess.is_correct;
+    const hintText = isCorrect ? 'Correct! 🎉' : hintForShort(index + 1);
+    return `<div class="guess-row${isCorrect ? ' win' : ''}"><span>${guess.country_name}</span><span class="wrong">${hintText}</span></div>`;
+  }).join('');
+  
   guesses = mine.map(guess => countries.find(country => country.name === guess.country_name)).filter(Boolean);
   $('tries').textContent = `${Math.max(0, 5 - guesses.length)} tries left`;
   
-  if (match.last_winner_id) message.textContent = `${match.last_winner_id === playerId ? 'You' : 'Your friend'} won the last round with ${match.last_winner_country}.`;
+  // Block input if user is finished but round hasn't advanced yet
+  const isMineFinished = mine.some(g => g.is_correct) || mine.length >= 5;
+  if (isMineFinished && match.status === 'active') {
+    input.disabled = true;
+    form.querySelector('button').disabled = true;
+    message.innerHTML = mine.some(g => g.is_correct)
+      ? '<strong>You got it!</strong> Waiting for your friend to finish...'
+      : '<strong>No tries left.</strong> Waiting for your friend to finish...';
+  } else if (match.status === 'active') {
+    input.disabled = false;
+    form.querySelector('button').disabled = false;
+    if (mine.length > 0) {
+      message.innerHTML = hintFor(mine.length);
+    } else {
+      message.textContent = 'Type a country to start making guesses.';
+    }
+  }
+  
+  if (match.last_winner_id && isMineFinished) {
+    message.textContent = `${match.last_winner_id === playerId ? 'You' : 'Your friend'} won the last round with ${match.last_winner_country}.`;
+  }
   if (match.status === 'finished') { 
     finished = true; 
     input.disabled = true; 
@@ -151,6 +182,18 @@ function renderChart() {
   $('legend').innerHTML = answer.colors.map(([name,pct,hex]) => `<span class="legend-item"><i class="swatch" style="background:${hex}"></i>${name} ${pct}%</span>`).join('');
 }
 
+function hintForShort(n) {
+  if (!answer) return 'Incorrect';
+  const hints = [
+    `Continent: ${answer.continent}`,
+    `Population: ${answer.population}`,
+    `${answer.border}`,
+    `Capital: ${answer.capital}`,
+    `Incorrect`
+  ];
+  return hints[n-1] || 'Incorrect';
+}
+
 function hintFor(n) { const hints = [ `Hint 1: It is in <strong>${answer.continent}</strong>.`, `Hint 2: Its documented population is <strong>${answer.population}</strong>.`, `Hint 3: ${answer.border}`, `Hint 4: Its capital is <strong>${answer.capital}</strong>.` ]; return hints[n-1]; }
 
 function newGame(practice=false) {
@@ -167,8 +210,11 @@ async function guess(value) {
   if (guesses.some(c=>c.name===country.name)) { message.textContent='You already tried that one.'; return; }
   if (activeMatch) { input.value=''; suggestions.classList.remove('show'); await submitMatchGuess(country); return; }
   guesses.push(country); const won=country.name===answer.name;
+  
+  const hintText = won ? 'Correct! 🎉' : hintForShort(guesses.length);
   const row=document.createElement('div'); row.className=`guess-row${won?' win':''}`;
-  row.innerHTML=`<span>${country.name}</span><span class="wrong">${won?'Correct! 🎉':`Not quite · ${5-guesses.length} left`}</span>`; list.append(row); input.value=''; suggestions.classList.remove('show');
+  row.innerHTML=`<span>${country.name}</span><span class="wrong">${hintText}</span>`; list.append(row); input.value=''; suggestions.classList.remove('show');
+  
   $('tries').textContent=`${Math.max(0,5-guesses.length)} tries left`;
   if (won) end(`You got it in <strong>${guesses.length}</strong> ${guesses.length===1?'guess':'guesses'}! It was <strong>${answer.name}</strong>.`);
   else if (guesses.length===5) end(`So close — the answer was <strong>${answer.name}</strong>. Hit “New round” for another.`);

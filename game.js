@@ -71,6 +71,7 @@ const $ = id => document.getElementById(id);
 const input = $('country-input'), form = $('guess-form'), message = $('message'), list = $('guess-list'), suggestions = $('suggestions');
 const matchTarget = $('match-target'), challengeStatus = $('challenge-status');
 const soloMode = $('solo-mode'), friendMode = $('friend-mode'), friendControls = $('friend-controls'), modeDescription = $('mode-description');
+const inviteLinkWrap = $('invite-link-wrap'), inviteLink = $('invite-link');
 const matchParams = new URLSearchParams(window.location.search);
 const sharedMatchId = matchParams.get('match');
 const sharedTarget = matchParams.get('firstTo');
@@ -86,7 +87,7 @@ function setPlayMode(mode) {
   modeDescription.textContent = friend
     ? 'Choose the target, then send a shared match link to your opponent.'
     : 'Solve today’s puzzle on your own, or start a fresh practice round.';
-  if (!friend) challengeStatus.textContent = '';
+  if (!friend) { challengeStatus.textContent = ''; inviteLinkWrap.hidden = true; }
 }
 function inviteUrl(target) {
   const url = new URL(window.location.href);
@@ -97,18 +98,18 @@ function inviteUrl(target) {
 async function copyInvite(text, target) {
   if (navigator.clipboard?.writeText) await navigator.clipboard.writeText(text);
   else window.prompt('Copy this invite for your friend:', text);
-  challengeStatus.textContent = `Invite ready — first to ${target} wins.`;
+  challengeStatus.textContent = `Invite link copied — first to ${target} wins.`;
 }
 async function inviteFriend() {
   const target = matchTarget.value;
   const url = inviteUrl(target);
-  const text = `Flag Pie 1v1: first to ${target} round wins. Join my match: ${url}`;
-  try {
-    if (navigator.share) await navigator.share({ title: 'Flag Pie 1v1', text, url });
-    else await copyInvite(text, target);
-  } catch (error) {
-    if (error.name !== 'AbortError') await copyInvite(text, target);
-  }
+  inviteLink.value = url; inviteLinkWrap.hidden = false;
+  challengeStatus.textContent = `Your first-to-${target} invite link is ready to send.`;
+}
+async function copyGeneratedInvite() {
+  if (!inviteLink.value) return;
+  try { await copyInvite(inviteLink.value, matchTarget.value); }
+  catch { window.prompt('Copy this invite for your friend:', inviteLink.value); }
 }
 function renderChart() {
   let at = 0; const stops = answer.colors.map(([,,hex],i) => { const start=at; at += answer.colors[i][1] * 3.6; return `${hex} ${start}deg ${at}deg`; });
@@ -148,6 +149,7 @@ form.addEventListener('submit',e=>{e.preventDefault(); if(!finished) guess(input
 $('new-game').addEventListener('click',()=>newGame(true));
 $('play-another').addEventListener('click',()=>newGame(true));
 $('invite-friend').addEventListener('click', inviteFriend);
+$('copy-invite-link').addEventListener('click', copyGeneratedInvite);
 soloMode.addEventListener('click', () => setPlayMode('solo'));
 friendMode.addEventListener('click', () => setPlayMode('friend'));
 if (sharedTarget === '3' || sharedTarget === '5') matchTarget.value = sharedTarget;

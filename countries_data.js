@@ -91,7 +91,7 @@ const countries = [
       ]
     ],
     "continent": "North America",
-    "population": "44",
+    "population": "38.2 million",
     "border": "It borders United States, Saint Pierre and Miquelon, Kingdom of Denmark, Dominion of Newfoundland, Rupert's Land, Colony of British Columbia, British Arctic Territories, Prince Edward Island, and Greenland.",
     "capital": "Ottawa"
   },
@@ -1102,7 +1102,7 @@ const countries = [
       ]
     ],
     "continent": "Europe",
-    "population": "13,414",
+    "population": "77,000",
     "border": "It borders France, Spain, and European Union.",
     "capital": "Andorra la Vella"
   },
@@ -2286,7 +2286,7 @@ const countries = [
       ]
     ],
     "continent": "Asia",
-    "population": "unknown population",
+    "population": "3.7 million",
     "border": "It has no land borders.",
     "capital": "Tbilisi"
   },
@@ -3203,7 +3203,7 @@ const countries = [
       ]
     ],
     "continent": "Oceania",
-    "population": "14,665",
+    "population": "58,000",
     "border": "It borders Federated States of Micronesia, Kiribati, United States, and Nauru.",
     "capital": "Majuro"
   },
@@ -3840,7 +3840,7 @@ const countries = [
       ]
     ],
     "continent": "Asia",
-    "population": "47,316",
+    "population": "2.8 million",
     "border": "It borders Saudi Arabia and Iran.",
     "capital": "Doha"
   },

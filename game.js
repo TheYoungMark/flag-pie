@@ -9,7 +9,30 @@ const sharedMatchId = matchParams.get('match');
 const sharedTarget = matchParams.get('firstTo');
 const SUPABASE_URL = 'https://ukzktvrbqqnmlrwvqzpr.supabase.co';
 const SUPABASE_KEY = 'sb_publishable_JEFdHvuMS6rrAdbShBMsMw_PKSGXDfG';
-let answer, guesses, finished, activeSuggestion = -1, supabaseClient, playerId, activeMatch, matchPoll;
+let answer, guesses, finished, activeSuggestion = -1, supabaseClient, playerId, activeMatch, matchPoll, lastShownFireRound = 0;
+
+// Filter out micro-states with population <= 50,000
+(function() {
+  function parsePopulation(str) {
+    if (!str) return 0;
+    let clean = str.replace(/,/g, '').trim().toLowerCase();
+    let factor = 1;
+    if (clean.includes('billion')) {
+      factor = 1000000000;
+      clean = clean.replace('billion', '');
+    } else if (clean.includes('million')) {
+      factor = 1000000;
+      clean = clean.replace('million', '');
+    } else if (clean.includes('thousand')) {
+      factor = 1000;
+      clean = clean.replace('thousand', '');
+    }
+    const val = parseFloat(clean);
+    return isNaN(val) ? 0 : val * factor;
+  }
+  const filtered = countries.filter(c => parsePopulation(c.population) > 50000);
+  countries.splice(0, countries.length, ...filtered);
+})();
 
 function dailyIndex() { const now = new Date(); return Math.floor(Date.UTC(now.getFullYear(), now.getMonth(), now.getDate()) / 86400000) % countries.length; }
 function normalize(s) { return s.trim().toLocaleLowerCase(); }
@@ -157,6 +180,11 @@ function renderMatch(state) {
   const oppLimit = oppCorrectGuess ? oppCorrectGuess.guess_number : 5;
   const myLimit = myCorrectGuess ? myCorrectGuess.guess_number : 5;
   
+  if (oppCorrectGuess && lastShownFireRound !== match.round_number) {
+    lastShownFireRound = match.round_number;
+    triggerFireAnimation(oppLimit);
+  }
+  
   const isMineFinished = myCorrectGuess !== undefined || mine.length >= oppLimit;
   const isOpponentFinished = oppCorrectGuess !== undefined || opponent.length >= myLimit;
   
@@ -227,7 +255,7 @@ async function syncMatch(state) {
 async function enterMatch(matchId) {
   await ensurePlayer();
   const { error } = await supabaseClient.rpc('join_match', { p_match:matchId }); if (error) throw error;
-  activeMatch = { id:matchId }; setPlayMode('friend'); await syncMatch();
+  activeMatch = { id:matchId }; lastShownFireRound = 0; setPlayMode('friend'); await syncMatch();
   clearInterval(matchPoll); matchPoll = setInterval(syncMatch, 2000);
 }
 
@@ -343,7 +371,8 @@ $('next-round-btn').addEventListener('click', async () => {
   try {
     $('next-round-btn').disabled = true;
     $('next-round-btn').textContent = 'Loading…';
-    const { data, error } = await supabaseClient.rpc('next_match_round', { p_match: activeMatch.id });
+    const nextIndex = Math.floor(Math.random() * countries.length);
+    const { data, error } = await supabaseClient.rpc('next_match_round', { p_match: activeMatch.id, p_country_index: nextIndex });
     if (error) throw error;
     await syncMatch(data);
   } catch (err) {
@@ -353,6 +382,36 @@ $('next-round-btn').addEventListener('click', async () => {
     $('next-round-btn').textContent = 'Next Round ➔';
   }
 });
+
+// Floating Fire Capping Warning Overlay
+function triggerFireAnimation(limit) {
+  const el = document.createElement('div');
+  el.style.position = 'fixed';
+  el.style.inset = '0';
+  el.style.display = 'flex';
+  el.style.flexDirection = 'column';
+  el.style.justifyContent = 'center';
+  el.style.alignItems = 'center';
+  el.style.zIndex = '99999';
+  el.style.background = 'rgba(0, 0, 0, 0.4)';
+  el.style.backdropFilter = 'blur(6px)';
+  el.style.color = '#fff';
+  el.style.fontFamily = 'inherit';
+  el.style.animation = 'fade-in 0.3s ease forwards';
+  
+  el.innerHTML = `
+    <div style="font-size: 6rem; animation: pulse-pop 0.6s infinite ease-in-out;">🔥</div>
+    <h2 style="margin: 20px 0 10px; font-size: 1.8rem; text-align: center;">Friend got it in ${limit}!</h2>
+    <p style="margin: 0; font-size: 1.1rem; color: #ffca28; font-weight: bold; text-align: center;">You are capped at ${limit} ${limit === 1 ? 'try' : 'tries'}!</p>
+  `;
+  
+  document.body.appendChild(el);
+  
+  setTimeout(() => {
+    el.style.animation = 'fade-out 0.3s ease forwards';
+    setTimeout(() => el.remove(), 300);
+  }, 2500);
+}
 
 // Lightweight Confetti Particle Explosion
 function triggerConfetti() {

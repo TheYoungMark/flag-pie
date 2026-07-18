@@ -1271,18 +1271,8 @@ const countries = [
       ],
       [
         "Black",
-        2,
+        5,
         "#000000"
-      ],
-      [
-        "Gray",
-        2,
-        "#909048"
-      ],
-      [
-        "Brown",
-        1,
-        "#484818"
       ]
     ],
     "continent": "North America",

@@ -35,7 +35,14 @@ let answer, guesses, finished, activeSuggestion = -1, supabaseClient, playerId, 
 })();
 
 function dailyIndex() { const now = new Date(); return Math.floor(Date.UTC(now.getFullYear(), now.getMonth(), now.getDate()) / 86400000) % countries.length; }
-function normalize(s) { return s.trim().toLocaleLowerCase(); }
+function normalize(s) {
+  if (!s) return '';
+  return s
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .trim()
+    .toLocaleLowerCase();
+}
 
 function setPlayMode(mode) {
   const friend = mode === 'friend';
@@ -361,7 +368,16 @@ async function guess(value) {
 }
 
 function end(text) { finished=true; input.disabled=true; form.querySelector('button').disabled=true; suggestions.classList.remove('show'); message.innerHTML=text; $('result-title').textContent=guesses.at(-1).name===answer.name?'You got it!':'The answer was…'; $('result-copy').innerHTML=`<strong>${answer.name}</strong><br>${text}`; $('result-screen').hidden=false; }
-function showSuggestions() { const term=normalize(input.value); const matches=countries.filter(c=>normalize(c.name).includes(term)).slice(0,30); activeSuggestion=-1; suggestions.innerHTML=matches.map(c=>`<button type="button" role="option" data-country="${c.name}">${c.name}</button>`).join(''); suggestions.classList.toggle('show',matches.length>0 && !finished); }
+function showSuggestions() {
+  const term = normalize(input.value);
+  const matches = countries.filter(c => {
+    const normName = normalize(c.name);
+    return normName.startsWith(term) || normName.split(/\s+/).some(word => word.startsWith(term));
+  });
+  activeSuggestion = -1;
+  suggestions.innerHTML = matches.map(c => `<button type="button" role="option" data-country="${c.name}">${c.name}</button>`).join('');
+  suggestions.classList.toggle('show', matches.length > 0 && !finished);
+}
 function chooseSuggestion(name) { input.value=name; suggestions.classList.remove('show'); input.focus(); }
 
 input.addEventListener('input',showSuggestions);

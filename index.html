@@ -1,0 +1,52 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="theme-color" content="#f9f7f0" />
+    <title>Flag Pie — Guess the country</title>
+    <link rel="stylesheet" href="style.css" />
+  </head>
+  <body>
+    <main class="game-shell">
+      <header>
+        <div class="brand"><span class="brand-mark">◔</span> Flag Pie</div>
+        <button id="new-game" class="text-button" type="button">Practice round ↻</button>
+      </header>
+
+      <section class="intro" aria-labelledby="game-title">
+        <p class="eyebrow">DAILY FLAG PUZZLE</p>
+        <h1 id="game-title">Which country is this flag?</h1>
+        <p class="subhead">The pie shows the colors in its flag — but not their arrangement.</p>
+      </section>
+
+      <section class="board" aria-live="polite">
+        <div class="chart-wrap">
+          <div id="pie-chart" class="pie-chart" role="img" aria-label="Flag color distribution pie chart"></div>
+          <div class="chart-center"><strong id="color-count">3</strong><span>colors</span></div>
+        </div>
+        <div id="legend" class="legend"></div>
+      </section>
+
+      <section class="play-area">
+        <div class="attempt-heading"><span>YOUR GUESSES</span><span id="tries">5 tries left</span></div>
+        <div id="guess-list" class="guess-list"></div>
+        <form id="guess-form" class="guess-form" autocomplete="off">
+          <label class="sr-only" for="country-input">Guess a country</label>
+          <input id="country-input" list="countries" placeholder="Type a country…" required />
+          <datalist id="countries"></datalist>
+          <button type="submit">Guess</button>
+        </form>
+        <p id="message" class="message">You have five guesses. Make the colors count.</p>
+      </section>
+
+      <section class="how-to">
+        <h2>How it works</h2>
+        <p>Each wrong answer reveals a clue. You get five attempts to identify the country.</p>
+        <div class="hint-key"><span><b>1</b> continent</span><span><b>2</b> population</span><span><b>3</b> border</span><span><b>4</b> capital</span></div>
+      </section>
+    </main>
+    <footer>Made for friendly competition · A new daily puzzle, or play practice rounds</footer>
+    <script src="game.js"></script>
+  </body>
+</html>

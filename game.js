@@ -115,7 +115,7 @@ async function ensurePlayer() {
 }
 
 function resetMatchRound(match) {
-  answer = countries[match.country_index]; guesses = []; finished = false; list.innerHTML = ''; input.value = ''; input.disabled = false; form.querySelector('button').disabled = false;
+  answer = countries[match.country_index]; guesses = []; finished = false; list.innerHTML = ''; input.value = ''; input.disabled = false; form.querySelector('button').disabled = false; $('skip-btn').disabled = false;
   $('tries').textContent = '5 tries left'; $('result-screen').hidden = true; showFlagImage(false); renderChart();
 }
 
@@ -172,9 +172,10 @@ function renderMatch(state) {
       const guess = mine[i];
       const isCorrect = guess.is_correct;
       const hintText = isCorrect ? 'Correct! 🎉' : hintForShort(i + 1);
+      const displayName = guess.country_name === 'Skip' ? 'Skipped' : guess.country_name;
       const row = document.createElement('div');
       row.className = `guess-row${isCorrect ? ' win' : ''}`;
-      row.innerHTML = `<span>${guess.country_name}</span><span class="wrong">${hintText}</span>`;
+      row.innerHTML = `<span>${displayName}</span><span class="wrong">${hintText}</span>`;
       list.appendChild(row);
     }
   }
@@ -204,6 +205,7 @@ function renderMatch(state) {
   if (isRoundFinished && match.status === 'active') {
     input.disabled = true;
     form.querySelector('button').disabled = true;
+    $('skip-btn').disabled = true;
     $('next-round-panel').hidden = true;
     showFlagImage(true);
     
@@ -242,6 +244,7 @@ function renderMatch(state) {
       // You finished, waiting for opponent
       input.disabled = true;
       form.querySelector('button').disabled = true;
+      $('skip-btn').disabled = true;
       if (myCorrectGuess) {
         message.innerHTML = `<strong>You got it!</strong> 🔥 Waiting for your friend to finish (they are limited to ${myLimit} tries)...`;
       } else {
@@ -251,6 +254,7 @@ function renderMatch(state) {
       // You are still playing
       input.disabled = false;
       form.querySelector('button').disabled = false;
+      $('skip-btn').disabled = false;
       if (oppCorrectGuess) {
         message.innerHTML = `<strong>Your opponent got it in ${oppLimit} tries! 🔥</strong> You are limited to ${oppLimit} tries to guess it or you lose!`;
       } else if (mine.length > 0) {
@@ -325,7 +329,7 @@ function hintFor(n) {
 
 function newGame(practice=false) {
   const idx = practice ? Math.floor(Math.random()*countries.length) : dailyIndex();
-  answer=countries[idx]; guesses=[]; finished=false; list.innerHTML=''; input.disabled=false; form.querySelector('button').disabled=false; input.value='';
+  answer=countries[idx]; guesses=[]; finished=false; list.innerHTML=''; input.disabled=false; form.querySelector('button').disabled=false; $('skip-btn').disabled=false; input.value='';
   $('result-screen').hidden=true; suggestions.classList.remove('show'); showFlagImage(false);
   message.innerHTML = practice ? 'Practice round: a random country has been chosen.' : 'Today’s puzzle is the same for everyone — share it with a friend.';
   $('tries').textContent='5 tries left'; renderChart(); input.focus();
@@ -348,6 +352,7 @@ async function guess(value) {
     finished = true;
     input.disabled = true;
     form.querySelector('button').disabled = true;
+    $('skip-btn').disabled = true;
     message.innerHTML = `<strong>Correct! 🎉</strong> The country was <strong>${answer.name}</strong>. Next round starts in 5 seconds...`;
     showFlagImage(true);
     setTimeout(() => {
@@ -358,6 +363,7 @@ async function guess(value) {
     finished = true;
     input.disabled = true;
     form.querySelector('button').disabled = true;
+    $('skip-btn').disabled = true;
     message.innerHTML = `<strong>Round over!</strong> The country was <strong>${answer.name}</strong>. Next round starts in 5 seconds...`;
     showFlagImage(true);
     setTimeout(() => {
@@ -380,12 +386,44 @@ function showSuggestions() {
 }
 function chooseSuggestion(name) { input.value=name; suggestions.classList.remove('show'); input.focus(); }
 
+async function handleSkip() {
+  if (activeMatch) {
+    await submitMatchGuess({ name: 'Skip' });
+  } else {
+    guesses.push({ name: 'Skip' });
+    const hintText = hintForShort(guesses.length);
+    const row = document.createElement('div');
+    row.className = 'guess-row';
+    row.innerHTML = `<span>Skipped</span><span class="wrong">${hintText}</span>`;
+    list.append(row);
+    input.value = '';
+    suggestions.classList.remove('show');
+    
+    $('tries').textContent = `${Math.max(0, 5 - guesses.length)} ${Math.max(0, 5 - guesses.length) === 1 ? 'try' : 'tries'} left`;
+    
+    if (guesses.length === 5) {
+      finished = true;
+      input.disabled = true;
+      form.querySelector('button').disabled = true;
+      $('skip-btn').disabled = true;
+      message.innerHTML = `<strong>Round over!</strong> The country was <strong>${answer.name}</strong>. Next round starts in 5 seconds...`;
+      showFlagImage(true);
+      setTimeout(() => {
+        if (!activeMatch && finished) newGame(true);
+      }, 5000);
+    } else {
+      message.innerHTML = hintFor(guesses.length);
+    }
+  }
+}
+
 input.addEventListener('input',showSuggestions);
 input.addEventListener('focus',showSuggestions);
 input.addEventListener('keydown',e=>{ const options=[...suggestions.querySelectorAll('button')]; if(!options.length) return; if(e.key==='ArrowDown'||e.key==='ArrowUp'){e.preventDefault(); activeSuggestion=(activeSuggestion+(e.key==='ArrowDown'?1:options.length-1))%options.length; options.forEach((o,i)=>{ const active = i===activeSuggestion; o.classList.toggle('active',active); if (active) o.scrollIntoView({ block: 'nearest' }); });} if(e.key==='Enter'&&activeSuggestion>=0){e.preventDefault();chooseSuggestion(options[activeSuggestion].dataset.country);} if(e.key==='Escape') suggestions.classList.remove('show'); });
 suggestions.addEventListener('click',e=>{if(e.target.dataset.country) chooseSuggestion(e.target.dataset.country);});
 document.addEventListener('click',e=>{if(!e.target.closest('.autocomplete')) suggestions.classList.remove('show');});
 form.addEventListener('submit',e=>{e.preventDefault(); if(!finished) guess(input.value);});
+$('skip-btn').addEventListener('click', () => { if (!finished) handleSkip(); });
 $('new-game').addEventListener('click',()=>activeMatch ? syncMatch() : newGame(true));
 $('play-another').addEventListener('click',()=>activeMatch ? syncMatch() : newGame(true));
 $('invite-friend').addEventListener('click', inviteFriend);

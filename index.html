@@ -22,6 +22,7 @@
               <span class="dot"></span>
             </div>
           </div>
+          <button id="theme-toggle" class="text-button" type="button">🌙 Night</button>
           <button id="how-to-btn" class="text-button" type="button">How to play ?</button>
           <button id="new-game" class="text-button" type="button">New round ↻</button>
         </div>
@@ -59,39 +60,55 @@
         </div>
       </section>
 
-      <section id="match-panel" class="match-panel" hidden aria-live="polite">
-        <div><p class="eyebrow">LIVE 1V1 MATCH</p><h2 id="match-round">Round 1</h2></div>
-        <div id="match-score" class="match-score"></div>
-        <div class="opponent-guesses"><strong>Opponent’s guesses</strong><div id="opponent-guess-list"></div></div>
-      </section>
+      <div class="match-panel" id="match-panel" hidden>
+        <div>
+          <p class="eyebrow">LIVE 1V1 MATCH</p>
+          <h2 id="match-round">Round 1</h2>
+        </div>
+        <div class="match-score" id="match-score"></div>
+        <div class="opponent-guesses">
+          <strong>Opponent’s guesses</strong>
+          <div id="opponent-guess-list"></div>
+        </div>
+      </div>
 
-      <section class="board" aria-live="polite">
+      <section class="board">
         <div class="chart-wrap">
-          <div id="pie-chart" class="pie-chart" role="img" aria-label="Flag color distribution pie chart"></div>
-          <div class="chart-center"><strong id="color-count">3</strong><span>colors</span></div>
+          <div id="pie-chart" class="pie-chart"></div>
+          <div class="chart-center">
+            <strong id="color-count">0</strong>
+            <span>colors</span>
+          </div>
         </div>
         <div id="legend" class="legend"></div>
-        <p class="fact-source">Flag colors are sampled from Wikimedia flag files. Population and land-border facts are verified with Wikidata.</p>
+        <p class="fact-source">Wikidata / Wikimedia Commons flag analysis</p>
       </section>
 
       <section class="play-area">
-        <div class="attempt-heading"><span>YOUR GUESSES</span><span id="tries">5 tries left</span></div>
+        <div class="attempt-heading">
+          <span>YOUR GUESSES</span>
+          <span id="tries">5 tries left</span>
+        </div>
         <div id="guess-list" class="guess-list"></div>
+        
         <form id="guess-form" class="guess-form" autocomplete="off">
-          <label class="sr-only" for="country-input">Guess a country</label>
           <div class="autocomplete">
-            <input id="country-input" placeholder="Type a country…" required aria-autocomplete="list" aria-controls="suggestions" />
+            <label class="sr-only" for="country-input">Guess the country</label>
+            <input id="country-input" type="text" placeholder="Type a country name…" required />
             <div id="suggestions" class="suggestions" role="listbox"></div>
           </div>
           <button type="submit">Guess</button>
         </form>
         <p id="message" class="message">You have five guesses. Make the colors count.</p>
+        <div id="next-round-panel" class="next-round-panel" hidden>
+          <button id="next-round-btn" class="next-round-btn" type="button">Next Round ➔</button>
+        </div>
       </section>
 
       <section class="how-to">
         <h2>How it works</h2>
         <p>Each wrong answer reveals a clue. You get five attempts to identify the country.</p>
-        <div class="hint-key"><span><b>1</b> continent</span><span><b>2</b> population</span><span><b>3</b> border</span><span><b>4</b> capital</span></div>
+        <div class="hint-key"><span><b>1</b> Continent</span><span><b>2</b> Population</span><span><b>3</b> Borders</span><span><b>4</b> Capital</span></div>
       </section>
     </main>
     <div id="result-screen" class="result-screen" hidden>

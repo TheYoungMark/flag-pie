@@ -97,7 +97,13 @@ function renderMatch(state) {
   $('match-panel').hidden = false; 
   $('challenge-section').hidden = true; // Hide play mode panel when match is active
   $('match-round').textContent = match.status === 'finished' ? 'Match complete' : `Round ${match.round_number} · first to ${match.target}`;
-  $('match-score').innerHTML = players.map(player => `<span>${player.user_id === playerId ? 'You' : 'Friend'} ${player.score}</span>`).join('');
+  
+  // Render match score with flame icon next to the round winner
+  $('match-score').innerHTML = players.map(player => {
+    const isRoundWinner = match.last_winner_id === player.user_id;
+    const flame = isRoundWinner ? ' 🔥' : '';
+    return `<span>${player.user_id === playerId ? 'You' : 'Friend'} ${player.score}${flame}</span>`;
+  }).join('');
   
   const opponent = guessesInRound.filter(guess => guess.user_id !== playerId), mine = guessesInRound.filter(guess => guess.user_id === playerId);
   
@@ -134,31 +140,55 @@ function renderMatch(state) {
   guesses = mine.map(guess => countries.find(country => country.name === guess.country_name)).filter(Boolean);
   $('tries').textContent = `${Math.max(0, 5 - guesses.length)} tries left`;
   
-  // Block input if user is finished but round hasn't advanced yet
   const isMineFinished = mine.some(g => g.is_correct) || mine.length >= 5;
-  if (isMineFinished && match.status === 'active') {
+  const isOpponentFinished = opponent.some(g => g.is_correct) || opponent.length >= 5;
+  const isRoundFinished = match.last_winner_id !== null || (isMineFinished && isOpponentFinished);
+  
+  if (isRoundFinished && match.status === 'active') {
+    // Round is finished! Disable inputs and show Next Round button
     input.disabled = true;
     form.querySelector('button').disabled = true;
-    message.innerHTML = mine.some(g => g.is_correct)
-      ? '<strong>You got it!</strong> Waiting for your friend to finish...'
-      : '<strong>No tries left.</strong> Waiting for your friend to finish...';
-  } else if (match.status === 'active') {
-    input.disabled = false;
-    form.querySelector('button').disabled = false;
-    if (mine.length > 0) {
-      message.innerHTML = hintFor(mine.length);
+    $('next-round-panel').hidden = false;
+    
+    if (match.last_winner_id) {
+      if (match.last_winner_id === playerId) {
+        const myWinAttempt = mine.find(g => g.is_correct);
+        message.innerHTML = `<strong>You got it!</strong> 🔥 Won this round in ${myWinAttempt ? myWinAttempt.guess_number : 1} tries. Click <strong>Next Round</strong> to proceed.`;
+      } else {
+        const oppWinAttempt = opponent.find(g => g.is_correct);
+        message.innerHTML = `<strong>Friend got it!</strong> 🔥 Won this round in ${oppWinAttempt ? oppWinAttempt.guess_number : 1} tries. The country was <strong>${answer.name}</strong>. Click <strong>Next Round</strong>.`;
+      }
     } else {
-      message.textContent = 'Type a country to start making guesses.';
+      message.innerHTML = `<strong>Round over!</strong> No one guessed it correctly. The country was <strong>${answer.name}</strong>. Click <strong>Next Round</strong>.`;
+    }
+  } else if (match.status === 'active') {
+    // Round in progress
+    $('next-round-panel').hidden = true;
+    
+    if (isMineFinished) {
+      // You finished, waiting for opponent
+      input.disabled = true;
+      form.querySelector('button').disabled = true;
+      message.innerHTML = mine.some(g => g.is_correct)
+        ? '<strong>You got it!</strong> Waiting for your friend to finish...'
+        : '<strong>No tries left.</strong> Waiting for your friend to finish...';
+    } else {
+      // You are still playing
+      input.disabled = false;
+      form.querySelector('button').disabled = false;
+      if (mine.length > 0) {
+        message.innerHTML = hintFor(mine.length);
+      } else {
+        message.textContent = 'Type a country to start making guesses.';
+      }
     }
   }
   
-  if (match.last_winner_id && isMineFinished) {
-    message.textContent = `${match.last_winner_id === playerId ? 'You' : 'Your friend'} won the last round with ${match.last_winner_country}.`;
-  }
   if (match.status === 'finished') { 
     finished = true; 
     input.disabled = true; 
     form.querySelector('button').disabled = true; 
+    $('next-round-panel').hidden = true;
     message.textContent = match.winner_id === playerId ? 'You won the match! 🎉' : 'Your friend won the match.'; 
     $('challenge-section').hidden = false; // Show play mode again to allow starting another match
   }
@@ -181,6 +211,9 @@ async function enterMatch(matchId) {
 async function submitMatchGuess(country) {
   const { data, error } = await supabaseClient.rpc('submit_match_guess', { p_match:activeMatch.id, p_country_name:country.name, p_is_correct:country.name === answer.name });
   if (error) { message.textContent = error.message; return; }
+  if (country.name === answer.name) {
+    triggerConfetti();
+  }
   await syncMatch(data);
 }
 
@@ -196,14 +229,22 @@ function hintForShort(n) {
   const hints = [
     `Continent: ${answer.continent}`,
     `Population: ${answer.population}`,
-    `${answer.border}`,
+    `Borders: ${answer.border.replace('It borders ', '')}`,
     `Capital: ${answer.capital}`,
     `Incorrect`
   ];
   return hints[n-1] || 'Incorrect';
 }
 
-function hintFor(n) { const hints = [ `Hint 1: It is in <strong>${answer.continent}</strong>.`, `Hint 2: Its documented population is <strong>${answer.population}</strong>.`, `Hint 3: ${answer.border}`, `Hint 4: Its capital is <strong>${answer.capital}</strong>.` ]; return hints[n-1]; }
+function hintFor(n) {
+  const hints = [
+    `Continent: <strong>${answer.continent}</strong>`,
+    `Population: <strong>${answer.population}</strong>`,
+    `Borders: <strong>${answer.border.replace('It borders ', '')}</strong>`,
+    `Capital: <strong>${answer.capital}</strong>`
+  ];
+  return hints[n-1];
+}
 
 function newGame(practice=false) {
   const idx = practice ? Math.floor(Math.random()*countries.length) : dailyIndex();
@@ -225,7 +266,10 @@ async function guess(value) {
   row.innerHTML=`<span>${country.name}</span><span class="wrong">${hintText}</span>`; list.append(row); input.value=''; suggestions.classList.remove('show');
   
   $('tries').textContent=`${Math.max(0,5-guesses.length)} tries left`;
-  if (won) end(`You got it in <strong>${guesses.length}</strong> ${guesses.length===1?'guess':'guesses'}! It was <strong>${answer.name}</strong>.`);
+  if (won) {
+    triggerConfetti();
+    end(`You got it in <strong>${guesses.length}</strong> ${guesses.length===1?'guess':'guesses'}! It was <strong>${answer.name}</strong>.`);
+  }
   else if (guesses.length===5) end(`So close — the answer was <strong>${answer.name}</strong>. Hit “New round” for another.`);
   else message.innerHTML=hintFor(guesses.length);
 }
@@ -258,6 +302,87 @@ $('close-how-to').addEventListener('click', () => $('how-to-screen').hidden = tr
 $('how-to-screen').addEventListener('click', (e) => {
   if (e.target === $('how-to-screen')) $('how-to-screen').hidden = true;
 });
+
+// Theme toggle initialization and binding
+const themeToggle = $('theme-toggle');
+let currentTheme = localStorage.getItem('theme') || 'light';
+document.documentElement.setAttribute('data-theme', currentTheme);
+themeToggle.textContent = currentTheme === 'dark' ? '☀️ Light' : '🌙 Night';
+themeToggle.addEventListener('click', () => {
+  currentTheme = currentTheme === 'dark' ? 'light' : 'dark';
+  document.documentElement.setAttribute('data-theme', currentTheme);
+  localStorage.setItem('theme', currentTheme);
+  themeToggle.textContent = currentTheme === 'dark' ? '☀️ Light' : '🌙 Night';
+});
+
+// Next Round 1v1 handler
+$('next-round-btn').addEventListener('click', async () => {
+  try {
+    $('next-round-btn').disabled = true;
+    $('next-round-btn').textContent = 'Loading…';
+    const { data, error } = await supabaseClient.rpc('next_match_round', { p_match: activeMatch.id });
+    if (error) throw error;
+    await syncMatch(data);
+  } catch (err) {
+    message.textContent = `Error starting next round: ${err.message}`;
+  } finally {
+    $('next-round-btn').disabled = false;
+    $('next-round-btn').textContent = 'Next Round ➔';
+  }
+});
+
+// Lightweight Confetti Particle Explosion
+function triggerConfetti() {
+  const canvas = document.createElement('canvas');
+  canvas.style.position = 'fixed';
+  canvas.style.inset = '0';
+  canvas.style.pointerEvents = 'none';
+  canvas.style.zIndex = '9999';
+  document.body.appendChild(canvas);
+  const ctx = canvas.getContext('2d');
+  canvas.width = window.innerWidth;
+  canvas.height = window.innerHeight;
+  
+  const particles = [];
+  const colors = ['#ff6f59', '#4ade80', '#3b82f6', '#facc15', '#a855f7', '#ec4899'];
+  
+  for (let i = 0; i < 150; i++) {
+    particles.push({
+      x: canvas.width / 2,
+      y: canvas.height * 0.85,
+      vx: (Math.random() - 0.5) * 16,
+      vy: -Math.random() * 18 - 4,
+      size: Math.random() * 6 + 4,
+      color: colors[Math.floor(Math.random() * colors.length)],
+      r: Math.random() * 360,
+      vr: (Math.random() - 0.5) * 8
+    });
+  }
+  
+  function update() {
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+    let active = false;
+    particles.forEach(p => {
+      p.x += p.vx;
+      p.y += p.vy;
+      p.vy += 0.45; // gravity
+      p.vx *= 0.98; // air resistance
+      p.r += p.vr;
+      if (p.y < canvas.height + 50) active = true;
+      
+      ctx.save();
+      ctx.translate(p.x, p.y);
+      ctx.rotate(p.r * Math.PI / 180);
+      ctx.fillStyle = p.color;
+      ctx.fillRect(-p.size/2, -p.size/2, p.size, p.size);
+      ctx.restore();
+    });
+    
+    if (active) requestAnimationFrame(update);
+    else canvas.remove();
+  }
+  update();
+}
 
 if (sharedTarget === '3' || sharedTarget === '5') matchTarget.value = sharedTarget;
 setPlayMode(sharedMatchId ? 'friend' : 'solo');

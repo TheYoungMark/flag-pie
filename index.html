@@ -86,12 +86,6 @@
       </section>
 
       <section class="play-area">
-        <div class="attempt-heading">
-          <span>YOUR GUESSES</span>
-          <span id="tries">5 tries left</span>
-        </div>
-        <div id="guess-list" class="guess-list"></div>
-        
         <form id="guess-form" class="guess-form" autocomplete="off">
           <div class="autocomplete">
             <label class="sr-only" for="country-input">Guess the country</label>
@@ -102,6 +96,13 @@
           <button id="skip-btn" class="skip-btn" type="button">Skip</button>
         </form>
         <p id="message" class="message">You have five guesses. Make the colors count.</p>
+
+        <div class="attempt-heading" style="margin-top: 24px;">
+          <span>YOUR GUESSES</span>
+          <span id="tries">5 tries left</span>
+        </div>
+        <div id="guess-list" class="guess-list"></div>
+        
         <div id="next-round-panel" class="next-round-panel" hidden>
           <button id="next-round-btn" class="next-round-btn" type="button">Next Round ➔</button>
         </div>

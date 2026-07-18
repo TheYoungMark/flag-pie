@@ -327,7 +327,7 @@ function hintFor(n) {
   return hints[n-1];
 }
 
-function newGame(practice=false) {
+function newGame(practice=true) {
   const idx = practice ? Math.floor(Math.random()*countries.length) : dailyIndex();
   answer=countries[idx]; guesses=[]; finished=false; list.innerHTML=''; input.disabled=false; form.querySelector('button').disabled=false; $('skip-btn').disabled=false; input.value='';
   $('result-screen').hidden=true; suggestions.classList.remove('show'); showFlagImage(false);
@@ -770,5 +770,5 @@ function showFlagImage(show) {
 if (sharedTarget === '3' || sharedTarget === '5') matchTarget.value = sharedTarget;
 setPlayMode(sharedMatchId ? 'friend' : 'solo');
 if (sharedMatchId && sharedTarget) challengeStatus.textContent = `Joining your live first-to-${sharedTarget} match…`;
-newGame();
+newGame(true);
 if (sharedMatchId) enterMatch(sharedMatchId).catch(error => { challengeStatus.textContent = `Couldn’t join this match: ${error.message || 'please try again.'}`; });

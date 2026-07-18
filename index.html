@@ -46,6 +46,12 @@
         </div>
       </section>
 
+      <section id="match-panel" class="match-panel" hidden aria-live="polite">
+        <div><p class="eyebrow">LIVE 1V1 MATCH</p><h2 id="match-round">Round 1</h2></div>
+        <div id="match-score" class="match-score"></div>
+        <div class="opponent-guesses"><strong>Opponent’s guesses</strong><div id="opponent-guess-list"></div></div>
+      </section>
+
       <section class="board" aria-live="polite">
         <div class="chart-wrap">
           <div id="pie-chart" class="pie-chart" role="img" aria-label="Flag color distribution pie chart"></div>
@@ -84,6 +90,7 @@
       </section>
     </div>
     <footer>Made for friendly competition · A new daily puzzle, or play practice rounds</footer>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <script src="game.js"></script>
   </body>
 </html>

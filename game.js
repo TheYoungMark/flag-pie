@@ -79,7 +79,9 @@ const inviteLinkWrap = $('invite-link-wrap'), inviteLink = $('invite-link');
 const matchParams = new URLSearchParams(window.location.search);
 const sharedMatchId = matchParams.get('match');
 const sharedTarget = matchParams.get('firstTo');
-let answer, guesses, finished, activeSuggestion = -1;
+const SUPABASE_URL = 'https://ukzktvrbqqnmlrwvqzpr.supabase.co';
+const SUPABASE_KEY = 'sb_publishable_JEFdHvuMS6rrAdbShBMsMw_PKSGXDfG';
+let answer, guesses, finished, activeSuggestion = -1, supabase, playerId, activeMatch, matchPoll;
 
 function dailyIndex() { const now = new Date(); return Math.floor(Date.UTC(now.getFullYear(), now.getMonth(), now.getDate()) / 86400000) % countries.length; }
 function normalize(s) { return s.trim().toLocaleLowerCase(); }
@@ -91,11 +93,11 @@ function setPlayMode(mode) {
   modeDescription.textContent = friend
     ? 'Choose the target, then send a shared match link to your opponent.'
     : 'Solve today’s puzzle on your own, or start a fresh practice round.';
-  if (!friend) { challengeStatus.textContent = ''; inviteLinkWrap.hidden = true; }
+  if (!friend) { challengeStatus.textContent = ''; inviteLinkWrap.hidden = true; activeMatch = null; clearInterval(matchPoll); $('match-panel').hidden = true; }
 }
-function inviteUrl(target) {
+function inviteUrl(target, matchId) {
   const url = new URL(window.location.href);
-  url.searchParams.set('match', window.crypto?.randomUUID?.() || `${Date.now()}-${Math.random().toString(36).slice(2)}`);
+  url.searchParams.set('match', matchId);
   url.searchParams.set('firstTo', target);
   return url.toString();
 }
@@ -106,16 +108,68 @@ async function copyInvite(text, target) {
 }
 async function inviteFriend() {
   const target = matchTarget.value;
-  const url = inviteUrl(target);
-  inviteLink.value = url; inviteLinkWrap.hidden = false;
-  challengeStatus.textContent = `Your first-to-${target} invite link is ready to send.`;
-  inviteLink.focus(); inviteLink.select();
-  window.prompt('Copy this invite link and send it to your friend:', url);
+  try {
+    await ensurePlayer();
+    const { data: matchId, error } = await supabase.rpc('start_match', { p_target:Number(target), p_country_index:Math.floor(Math.random() * countries.length) });
+    if (error) throw error;
+    await enterMatch(matchId);
+    const url = inviteUrl(target, matchId);
+    inviteLink.value = url; inviteLinkWrap.hidden = false;
+    challengeStatus.textContent = `Your live first-to-${target} match is ready. Send this link to your friend.`;
+    inviteLink.focus(); inviteLink.select();
+    window.prompt('Copy this live match link and send it to your friend:', url);
+  } catch (error) {
+    challengeStatus.textContent = `Couldn’t create the match: ${error.message || 'please try again.'}`;
+  }
 }
 async function copyGeneratedInvite() {
   if (!inviteLink.value) return;
   try { await copyInvite(inviteLink.value, matchTarget.value); }
   catch { window.prompt('Copy this invite for your friend:', inviteLink.value); }
+}
+async function ensurePlayer() {
+  if (!supabase) supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+  const { data: { session } } = await supabase.auth.getSession();
+  if (session) { playerId = session.user.id; return; }
+  const { data, error } = await supabase.auth.signInAnonymously();
+  if (error) throw error;
+  playerId = data.user.id;
+}
+function resetMatchRound(match) {
+  answer = countries[match.country_index]; guesses = []; finished = false; list.innerHTML = ''; input.value = ''; input.disabled = false; form.querySelector('button').disabled = false;
+  $('tries').textContent = '5 tries left'; $('result-screen').hidden = true; renderChart(); loadWikimediaFlagColors(answer).catch(() => {});
+}
+function renderMatch(state) {
+  const match = state.match, players = state.players || [], guessesInRound = state.guesses || [];
+  const roundChanged = !activeMatch || activeMatch.round_number !== match.round_number || activeMatch.country_index !== match.country_index;
+  activeMatch = match;
+  $('match-panel').hidden = false; $('match-round').textContent = match.status === 'finished' ? 'Match complete' : `Round ${match.round_number} · first to ${match.target}`;
+  $('match-score').innerHTML = players.map(player => `<span>${player.user_id === playerId ? 'You' : 'Friend'} ${player.score}</span>`).join('');
+  const opponent = guessesInRound.filter(guess => guess.user_id !== playerId), mine = guessesInRound.filter(guess => guess.user_id === playerId);
+  $('opponent-guess-list').innerHTML = opponent.length ? opponent.map(guess => `<span class="${guess.is_correct ? 'correct' : ''}">${guess.country_name}${guess.is_correct ? ' ✓' : ''}</span>`).join('') : '<span>Waiting for a guess…</span>';
+  if (roundChanged) resetMatchRound(match);
+  list.innerHTML = mine.map(guess => `<div class="guess-row${guess.is_correct ? ' win' : ''}"><span>${guess.country_name}</span><span class="wrong">${guess.is_correct ? 'Correct! 🎉' : `Not quite · ${5 - guess.guess_number} left`}</span></div>`).join('');
+  guesses = mine.map(guess => countries.find(country => country.name === guess.country_name)).filter(Boolean);
+  $('tries').textContent = `${Math.max(0, 5 - guesses.length)} tries left`;
+  if (match.last_winner_id) message.textContent = `${match.last_winner_id === playerId ? 'You' : 'Your friend'} won the last round with ${match.last_winner_country}.`;
+  if (match.status === 'finished') { finished = true; input.disabled = true; form.querySelector('button').disabled = true; message.textContent = match.winner_id === playerId ? 'You won the match! 🎉' : 'Your friend won the match.'; }
+}
+async function syncMatch(state) {
+  try {
+    if (!state) { const { data, error } = await supabase.rpc('match_state', { p_match:activeMatch.id }); if (error) throw error; state = data; }
+    renderMatch(state);
+  } catch (error) { challengeStatus.textContent = `Match connection lost: ${error.message || 'retrying…'}`; }
+}
+async function enterMatch(matchId) {
+  await ensurePlayer();
+  const { error } = await supabase.rpc('join_match', { p_match:matchId }); if (error) throw error;
+  activeMatch = { id:matchId }; setPlayMode('friend'); await syncMatch();
+  clearInterval(matchPoll); matchPoll = setInterval(syncMatch, 2000);
+}
+async function submitMatchGuess(country) {
+  const { data, error } = await supabase.rpc('submit_match_guess', { p_match:activeMatch.id, p_country_name:country.name, p_is_correct:country.name === answer.name });
+  if (error) { message.textContent = error.message; return; }
+  await syncMatch(data);
 }
 function renderChart() {
   let at = 0; const stops = answer.colors.map(([,,hex],i) => { const start=at; at += answer.colors[i][1] * 3.6; return `${hex} ${start}deg ${at}deg`; });
@@ -137,7 +191,7 @@ async function loadWikimediaFlagColors(country) {
     const rgb = [pixels[i], pixels[i+1], pixels[i+2]].map(value => Math.min(255, Math.round(value / 32) * 32));
     const key = rgb.join(','); counts.set(key, (counts.get(key) || 0) + 1); total++;
   }
-  const colors = [...counts.entries()].sort((a,b) => b[1]-a[1]).slice(0, 7).map(([rgb, count]) => {
+  const colors = [...counts.entries()].sort((a,b) => b[1]-a[1]).slice(0, 12).map(([rgb, count]) => {
     const [r,g,b] = rgb.split(',').map(Number), color = `#${hex(r)}${hex(g)}${hex(b)}`;
     return [color.toUpperCase(), Math.round(count / total * 100), color];
   });
@@ -153,14 +207,17 @@ function listWords(items) { return new Intl.ListFormat('en', { style:'long', typ
 async function wikidataEntities(params) {
   const url = new URL('https://www.wikidata.org/w/api.php');
   Object.entries({ action:'wbgetentities', format:'json', origin:'*', languages:'en', ...params }).forEach(([key, value]) => url.searchParams.set(key, value));
-  const response = await fetch(url);
-  if (!response.ok) throw new Error('Wikidata request failed');
-  return (await response.json()).entities;
+  for (let attempt=0; attempt<4; attempt++) {
+    const response = await fetch(url);
+    if (response.ok) return (await response.json()).entities;
+    if (response.status !== 429 || attempt === 3) throw new Error('Wikidata request failed');
+    await new Promise(resolve => setTimeout(resolve, (attempt + 1) * 1500));
+  }
 }
 async function hydrateCountryFacts() {
   const byId = new Map();
-  for (let i=0; i<countries.length; i+=40) {
-    const batch = countries.slice(i, i+40);
+  const countryBatches = Array.from({ length:Math.ceil(countries.length / 40) }, (_, index) => countries.slice(index * 40, index * 40 + 40));
+  for (const batch of countryBatches) {
     const entities = await wikidataEntities({ sites:'enwiki', titles:batch.map(wikiTitle).join('|'), props:'claims|sitelinks' });
     Object.values(entities).forEach(entity => {
       const title = entity.sitelinks?.enwiki?.title;
@@ -170,8 +227,9 @@ async function hydrateCountryFacts() {
   }
   const borderIds = [...new Set([...byId.values()].flatMap(({ entity }) => (entity.claims?.P47 || []).map(claimValue).filter(Boolean)))];
   const labels = new Map();
-  for (let i=0; i<borderIds.length; i+=50) {
-    const entities = await wikidataEntities({ ids:borderIds.slice(i, i+50).join('|'), props:'labels' });
+  const borderBatches = Array.from({ length:Math.ceil(borderIds.length / 50) }, (_, index) => borderIds.slice(index * 50, index * 50 + 50));
+  for (const batch of borderBatches) {
+    const entities = await wikidataEntities({ ids:batch.join('|'), props:'labels' });
     Object.values(entities).forEach(entity => { if (entity.labels?.en?.value) labels.set(entity.id, entity.labels.en.value); });
   }
   byId.forEach(({ country, entity }) => {
@@ -195,10 +253,11 @@ function newGame(practice=false) {
   message.innerHTML = practice ? 'Practice round: a random country has been chosen.' : 'Today’s puzzle is the same for everyone — share it with a friend.';
   $('tries').textContent='5 tries left'; renderChart(); loadWikimediaFlagColors(answer).catch(() => {}); input.focus();
 }
-function guess(value) {
+async function guess(value) {
   const country=countries.find(c=>normalize(c.name)===normalize(value));
   if (!country) { message.textContent='Choose a country from the suggestions.'; return; }
   if (guesses.some(c=>c.name===country.name)) { message.textContent='You already tried that one.'; return; }
+  if (activeMatch) { input.value=''; suggestions.classList.remove('show'); await submitMatchGuess(country); return; }
   guesses.push(country); const won=country.name===answer.name;
   const row=document.createElement('div'); row.className=`guess-row${won?' win':''}`;
   row.innerHTML=`<span>${country.name}</span><span class="wrong">${won?'Correct! 🎉':`Not quite · ${5-guesses.length} left`}</span>`; list.append(row); input.value=''; suggestions.classList.remove('show');
@@ -216,14 +275,15 @@ input.addEventListener('keydown',e=>{ const options=[...suggestions.querySelecto
 suggestions.addEventListener('click',e=>{if(e.target.dataset.country) chooseSuggestion(e.target.dataset.country);});
 document.addEventListener('click',e=>{if(!e.target.closest('.autocomplete')) suggestions.classList.remove('show');});
 form.addEventListener('submit',e=>{e.preventDefault(); if(!finished) guess(input.value);});
-$('new-game').addEventListener('click',()=>newGame(true));
-$('play-another').addEventListener('click',()=>newGame(true));
+$('new-game').addEventListener('click',()=>activeMatch ? syncMatch() : newGame(true));
+$('play-another').addEventListener('click',()=>activeMatch ? syncMatch() : newGame(true));
 $('invite-friend').addEventListener('click', inviteFriend);
 $('copy-invite-link').addEventListener('click', copyGeneratedInvite);
 soloMode.addEventListener('click', () => setPlayMode('solo'));
 friendMode.addEventListener('click', () => setPlayMode('friend'));
 if (sharedTarget === '3' || sharedTarget === '5') matchTarget.value = sharedTarget;
 setPlayMode(sharedMatchId ? 'friend' : 'solo');
-if (sharedMatchId && sharedTarget) challengeStatus.textContent = `You joined a 1v1 match — first to ${sharedTarget} wins. Play the same daily puzzle, then compare results with your friend.`;
+if (sharedMatchId && sharedTarget) challengeStatus.textContent = `Joining your live first-to-${sharedTarget} match…`;
 newGame();
 hydrateCountryFacts().catch(() => { /* The game remains playable if Wikimedia is temporarily unavailable. */ });
+if (sharedMatchId) enterMatch(sharedMatchId).catch(error => { challengeStatus.textContent = `Couldn’t join this match: ${error.message || 'please try again.'}`; });

@@ -63,9 +63,13 @@ const extraCountries = [
 ];
 countries.push(...extraCountries.map(([name, continent, capital], index) => ({
   name, colors: fallbackPalettes[index % fallbackPalettes.length], continent,
-  population: 'a country with a unique population profile',
-  border: `Its geography is part of the clue.`, capital
+  population: 'loading verified population data',
+  border: 'Loading verified border data.', capital
 })));
+countries.forEach(country => {
+  country.population = 'loading verified population data';
+  country.border = 'Loading verified border data.';
+});
 
 const $ = id => document.getElementById(id);
 const input = $('country-input'), form = $('guess-form'), message = $('message'), list = $('guess-list'), suggestions = $('suggestions');
@@ -119,13 +123,77 @@ function renderChart() {
   $('color-count').textContent = answer.colors.length;
   $('legend').innerHTML = answer.colors.map(([name,pct,hex]) => `<span class="legend-item"><i class="swatch" style="background:${hex}"></i>${name} ${pct}%</span>`).join('');
 }
-function hintFor(n) { const hints = [ `Hint 1: It is in <strong>${answer.continent}</strong>.`, `Hint 2: Its population is about <strong>${answer.population}</strong>.`, `Hint 3: ${answer.border}`, `Hint 4: Its capital is <strong>${answer.capital}</strong>.` ]; return hints[n-1]; }
+function hex(value) { return value.toString(16).padStart(2, '0'); }
+async function loadWikimediaFlagColors(country) {
+  if (!country.flagFile || country.flagColorsLoaded) return;
+  const image = new Image(); image.crossOrigin = 'anonymous';
+  image.src = `https://commons.wikimedia.org/wiki/Special:FilePath/${encodeURIComponent(country.flagFile)}?width=360`;
+  await new Promise((resolve, reject) => { image.onload = resolve; image.onerror = reject; });
+  const canvas = document.createElement('canvas'); canvas.width = 180; canvas.height = Math.max(1, Math.round(180 * image.naturalHeight / image.naturalWidth));
+  const context = canvas.getContext('2d', { willReadFrequently:true }); context.drawImage(image, 0, 0, canvas.width, canvas.height);
+  const pixels = context.getImageData(0, 0, canvas.width, canvas.height).data, counts = new Map(); let total = 0;
+  for (let i=0; i<pixels.length; i+=4) {
+    if (pixels[i+3] < 128) continue;
+    const rgb = [pixels[i], pixels[i+1], pixels[i+2]].map(value => Math.min(255, Math.round(value / 32) * 32));
+    const key = rgb.join(','); counts.set(key, (counts.get(key) || 0) + 1); total++;
+  }
+  const colors = [...counts.entries()].sort((a,b) => b[1]-a[1]).slice(0, 7).map(([rgb, count]) => {
+    const [r,g,b] = rgb.split(',').map(Number), color = `#${hex(r)}${hex(g)}${hex(b)}`;
+    return [color.toUpperCase(), Math.round(count / total * 100), color];
+  });
+  if (colors.length && answer === country) { country.colors = colors; country.flagColorsLoaded = true; renderChart(); }
+}
+function hintFor(n) { const hints = [ `Hint 1: It is in <strong>${answer.continent}</strong>.`, `Hint 2: Its documented population is <strong>${answer.population}</strong>.`, `Hint 3: ${answer.border}`, `Hint 4: Its capital is <strong>${answer.capital}</strong>.` ]; return hints[n-1]; }
+function wikiTitle(country) {
+  return ({ 'Türkiye':'Turkey', 'Cabo Verde':'Cape Verde', 'Ivory Coast':"Côte d'Ivoire", 'Vatican City':'Vatican City', 'South Korea':'South Korea', 'North Korea':'North Korea' })[country.name] || country.name;
+}
+function claimValue(statement) { return statement?.mainsnak?.datavalue?.value; }
+function statementDate(statement) { return claimValue(statement?.qualifiers?.P585?.[0])?.time || ''; }
+function listWords(items) { return new Intl.ListFormat('en', { style:'long', type:'conjunction' }).format(items); }
+async function wikidataEntities(params) {
+  const url = new URL('https://www.wikidata.org/w/api.php');
+  Object.entries({ action:'wbgetentities', format:'json', origin:'*', languages:'en', ...params }).forEach(([key, value]) => url.searchParams.set(key, value));
+  const response = await fetch(url);
+  if (!response.ok) throw new Error('Wikidata request failed');
+  return (await response.json()).entities;
+}
+async function hydrateCountryFacts() {
+  const byId = new Map();
+  for (let i=0; i<countries.length; i+=40) {
+    const batch = countries.slice(i, i+40);
+    const entities = await wikidataEntities({ sites:'enwiki', titles:batch.map(wikiTitle).join('|'), props:'claims|sitelinks' });
+    Object.values(entities).forEach(entity => {
+      const title = entity.sitelinks?.enwiki?.title;
+      const country = batch.find(item => wikiTitle(item) === title);
+      if (country) byId.set(entity.id, { country, entity });
+    });
+  }
+  const borderIds = [...new Set([...byId.values()].flatMap(({ entity }) => (entity.claims?.P47 || []).map(claimValue).filter(Boolean)))];
+  const labels = new Map();
+  for (let i=0; i<borderIds.length; i+=50) {
+    const entities = await wikidataEntities({ ids:borderIds.slice(i, i+50).join('|'), props:'labels' });
+    Object.values(entities).forEach(entity => { if (entity.labels?.en?.value) labels.set(entity.id, entity.labels.en.value); });
+  }
+  byId.forEach(({ country, entity }) => {
+    country.flagFile = claimValue(entity.claims?.P41?.[0]);
+    const populations = (entity.claims?.P1082 || []).filter(statement => typeof claimValue(statement)?.amount === 'string').sort((a,b) => statementDate(b).localeCompare(statementDate(a)));
+    const population = claimValue(populations[0]);
+    if (population) {
+      const amount = Math.abs(Number(population.amount));
+      const date = statementDate(populations[0]).slice(1, 5);
+      country.population = `${new Intl.NumberFormat('en-US').format(amount)}${date ? ` (${date} estimate)` : ''}`;
+    }
+    const borders = (entity.claims?.P47 || []).map(claimValue).map(id => labels.get(id)).filter(Boolean);
+    country.border = borders.length ? `It borders ${listWords(borders)}.` : 'It has no land borders.';
+  });
+  loadWikimediaFlagColors(answer).catch(() => {});
+}
 function newGame(practice=false) {
   const idx = practice ? Math.floor(Math.random()*countries.length) : dailyIndex();
   answer=countries[idx]; guesses=[]; finished=false; list.innerHTML=''; input.disabled=false; form.querySelector('button').disabled=false; input.value='';
   $('result-screen').hidden=true; suggestions.classList.remove('show');
   message.innerHTML = practice ? 'Practice round: a random country has been chosen.' : 'Today’s puzzle is the same for everyone — share it with a friend.';
-  $('tries').textContent='5 tries left'; renderChart(); input.focus();
+  $('tries').textContent='5 tries left'; renderChart(); loadWikimediaFlagColors(answer).catch(() => {}); input.focus();
 }
 function guess(value) {
   const country=countries.find(c=>normalize(c.name)===normalize(value));
@@ -158,3 +226,4 @@ if (sharedTarget === '3' || sharedTarget === '5') matchTarget.value = sharedTarg
 setPlayMode(sharedMatchId ? 'friend' : 'solo');
 if (sharedMatchId && sharedTarget) challengeStatus.textContent = `You joined a 1v1 match — first to ${sharedTarget} wins. Play the same daily puzzle, then compare results with your friend.`;
 newGame();
+hydrateCountryFacts().catch(() => { /* The game remains playable if Wikimedia is temporarily unavailable. */ });
